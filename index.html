@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meat Thumb</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+  <main class="synth">
+    <header class="top">
+      <div class="brand">
+        <h1>MEAT<span>THUMB</span></h1>
+        <p class="tag">fat oscillator · v0.1</p>
+      </div>
+      <canvas id="scope" width="640" height="120" aria-label="Oscilloscope"></canvas>
+      <button id="power" class="power" aria-pressed="false">POWER</button>
+    </header>
+
+    <section class="panel" id="osc">
+      <h2>Oscillator</h2>
+      <div class="row">
+        <div class="select-group" data-param="wave" role="radiogroup" aria-label="Waveform">
+          <button data-value="0" class="on">SAW</button>
+          <button data-value="1">PULSE</button>
+          <button data-value="2">TRI</button>
+        </div>
+        <div class="knobs" data-group="osc"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="unison">
+      <h2>Unison</h2>
+      <div class="knobs" data-group="unison"></div>
+      <label class="toggle"><input type="checkbox" data-param="randomPhase" checked> random phase</label>
+    </section>
+
+    <section class="panel" id="sub">
+      <h2>Sub</h2>
+      <div class="row">
+        <div class="select-group" data-param="subType" role="radiogroup" aria-label="Sub waveform">
+          <button data-value="0">OFF</button>
+          <button data-value="1" class="on">SINE</button>
+          <button data-value="2">SQR</button>
+        </div>
+        <div class="select-group" data-param="subOctave" role="radiogroup" aria-label="Sub octave">
+          <button data-value="-1" class="on">-1</button>
+          <button data-value="-2">-2</button>
+        </div>
+        <div class="knobs" data-group="sub"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="amp">
+      <h2>Amp</h2>
+      <div class="knobs" data-group="amp"></div>
+    </section>
+
+    <section class="panel" id="filter">
+      <h2>Filter</h2>
+      <div class="row">
+        <div class="select-group" data-param="filterMode" role="radiogroup" aria-label="Filter mode">
+          <button data-value="0" class="on">LP24</button>
+          <button data-value="1">LP12</button>
+          <button data-value="2">BP</button>
+          <button data-value="3">HP</button>
+        </div>
+        <div class="knobs" data-group="filter"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="lfo">
+      <h2>LFO <span class="sub-h">→ cutoff</span><span class="lfo-meter" aria-hidden="true"><span></span></span></h2>
+      <div class="row">
+        <div class="select-group" data-param="lfoShape" role="radiogroup" aria-label="LFO shape">
+          <button data-value="0" class="on">SINE</button>
+          <button data-value="1">TRI</button>
+          <button data-value="2">SAW</button>
+          <button data-value="3">SQR</button>
+          <button data-value="4">S&amp;H</button>
+        </div>
+        <div class="lfo-side">
+          <div class="knobs" data-group="lfo"></div>
+          <label class="toggle"><input type="checkbox" data-param="lfoSync"> sync to tempo</label>
+          <label class="toggle"><input type="checkbox" data-param="lfoRetrig"> retrigger on note</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="modsrc">
+      <h2>Mod Sources</h2>
+      <div class="src-grid">
+        <div class="src">
+          <h3>LFO 1 <span class="lfo-meter src-meter"><span></span></span></h3>
+          <p class="hint">Shape and rate are set in the LFO panel. Its Amount there still goes straight to cutoff.</p>
+        </div>
+        <div class="src">
+          <h3>LFO 2 <span class="lfo-meter src-meter"><span></span></span></h3>
+          <label class="mini-select">Shape
+            <select data-param="lfo2Shape">
+              <option value="0">Sine</option><option value="1" selected>Triangle</option><option value="2">Saw</option><option value="3">Square</option><option value="4">S&amp;H</option>
+            </select>
+          </label>
+          <div class="knobs" data-group="lfo2"></div>
+          <label class="toggle"><input type="checkbox" data-param="lfo2Sync"> sync to tempo</label>
+        </div>
+        <div class="src src-wide">
+          <h3>Qubit <span class="lfo-meter src-meter"><span></span></span></h3>
+          <div class="src-row">
+            <canvas id="bloch" aria-label="Bloch sphere"></canvas>
+            <div class="knobs" data-group="qubit"></div>
+          </div>
+          <p class="hint">Precesses on the Bloch sphere; each measurement collapses it to |0⟩ or |1⟩ (flashes blue). Measure fast enough and it freezes — the quantum Zeno effect.</p>
+        </div>
+        <div class="src">
+          <h3>Lorenz <span class="lfo-meter src-meter"><span></span></span></h3>
+          <div class="src-row">
+            <canvas id="lorenz" aria-label="Lorenz attractor"></canvas>
+            <div class="knobs" data-group="lorenz"></div>
+          </div>
+        </div>
+        <div class="src">
+          <h3>Dice <span class="lfo-meter src-meter"><span></span></span></h3>
+          <div class="knobs" data-group="dice"></div>
+          <p class="hint">New random value on every played step or note.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="matrix">
+      <h2>Mod Matrix</h2>
+      <div class="slots" id="slots"></div>
+    </section>
+
+    <section class="panel" id="delay">
+      <h2>Delay</h2>
+      <div class="row">
+        <div class="select-group" data-param="mode" data-target="delay" role="radiogroup" aria-label="Delay mode">
+          <button data-value="0">STEREO</button>
+          <button data-value="1" class="on">PING-PONG</button>
+        </div>
+        <div class="knobs" data-group="delay"></div>
+        <label class="toggle"><input type="checkbox" data-param="sync" data-target="delay" checked> sync to tempo</label>
+      </div>
+    </section>
+
+    <section class="panel" id="reverb">
+      <h2>Quantum Reverb</h2>
+      <div class="reverb-body">
+        <canvas id="horizon" width="180" height="180" aria-label="Reverb energy display"></canvas>
+        <div class="knobs" data-group="reverb"></div>
+        <button id="freeze" class="freeze" aria-pressed="false">FREEZE</button>
+      </div>
+    </section>
+
+    <section class="panel" id="sequencer">
+      <h2>Sequencer</h2>
+      <div id="seq-body"></div>
+    </section>
+
+    <section class="keys-wrap">
+      <div class="keys-info">
+        <span>Keys: <kbd>A</kbd>–<kbd>K</kbd> play · <kbd>Z</kbd>/<kbd>X</kbd> octave · <kbd>Space</kbd> play/stop · <span id="oct-label">C3</span></span>
+        <span id="midi-status">MIDI: —</span>
+      </div>
+      <div id="keyboard" class="keyboard"></div>
+    </section>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
