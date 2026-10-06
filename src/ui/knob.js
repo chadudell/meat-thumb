@@ -1,9 +1,11 @@
 // Minimal rotary knob: vertical drag (shift = fine), wheel, arrow keys,
 // double-click to reset. `bipolar` knobs fill outward from 12 o'clock.
+// `onGesture(true/false)` brackets a drag, so a plugin host can record it as
+// one automation move.
 
 const SWEEP = 270;
 
-export function createKnob({ label, min, max, value, step = 0, bipolar = false, format = (v) => v.toFixed(2), onChange }) {
+export function createKnob({ label, min, max, value, step = 0, bipolar = false, format = (v) => v.toFixed(2), onChange, onGesture }) {
   const el = document.createElement('div');
   el.className = 'knob';
   el.innerHTML = `
@@ -49,6 +51,7 @@ export function createKnob({ label, min, max, value, step = 0, bipolar = false, 
     dragY = e.clientY;
     dragStart = current;
     el.classList.add('active');
+    onGesture?.(true);
   });
   dial.addEventListener('pointermove', (e) => {
     if (dragY === null) return;
@@ -56,20 +59,28 @@ export function createKnob({ label, min, max, value, step = 0, bipolar = false, 
     set(dragStart + ((dragY - e.clientY) / px) * (max - min));
   });
   const end = () => {
+    if (dragY === null) return;
     dragY = null;
     el.classList.remove('active');
+    onGesture?.(false);
   };
   dial.addEventListener('pointerup', end);
   dial.addEventListener('pointercancel', end);
-  dial.addEventListener('dblclick', () => set(initial));
+  // One-shot edits are a whole gesture on their own.
+  const nudge = (v) => {
+    onGesture?.(true);
+    set(v);
+    onGesture?.(false);
+  };
+  dial.addEventListener('dblclick', () => nudge(initial));
   dial.addEventListener('wheel', (e) => {
     e.preventDefault();
-    set(current - Math.sign(e.deltaY) * (step || (max - min) / 100));
+    nudge(current - Math.sign(e.deltaY) * (step || (max - min) / 100));
   }, { passive: false });
   dial.addEventListener('keydown', (e) => {
     const d = step || (max - min) / 50;
-    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') set(current + d);
-    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') set(current - d);
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') nudge(current + d);
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') nudge(current - d);
     else return;
     e.preventDefault();
     e.stopPropagation();

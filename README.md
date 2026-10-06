@@ -11,8 +11,34 @@ mod matrix: LFO 1 · LFO 2 · Qubit · Lorenz · Dice  →  ~30 knobs across eve
 ```
 
 ```
-npm start        # → http://localhost:5173
+npm start        # → http://localhost:5173   (or: python3 -m http.server 5173)
 ```
+
+## Audio Unit (Logic Pro / GarageBand)
+
+```
+plugin/build.sh install   # builds, installs to ~/Library/Audio/Plug-Ins/Components, runs auval
+```
+
+Needs Xcode or the Command Line Tools, plus CMake (`python3 -m pip install --user cmake ninja`
+works). JUCE 8 is fetched automatically, or set `JUCE_DIR`. In Logic: new Software Instrument
+track → Instrument slot → **AU Instruments → Meat Thumb**.
+
+- The C++ engine (`plugin/Source/dsp`) is a sample-exact port of `src/dsp`. `plugin/tests/run_parity.sh`
+  renders 23 scenarios through both and checks they match (they're bit-identical).
+- The plugin's UI is this web UI, zipped into the AU and shown in a WebView (`src/host.js` is the bridge).
+  Every knob is a host-automatable parameter. Pattern and mod matrix save with your project.
+- Sequencer: **Play** arms it. With *follow host transport* on, it starts and stops with Logic and
+  locks to the bar; off, it free-runs at the host tempo.
+
+## The Specimen
+
+The thumb is cut from the on-model sheet `art/meat-thumb-sheet-v2.png` by `python3 art/extract.py`
+(needs pillow, numpy, scipy) into `assets/thumbs/`, registered on the fist so the seven states
+crossfade cleanly. To swap in revised art, replace the sheet, check the crop boxes and fist
+anchors at the top of the script, and re-run it.
+
+## Web version
 
 Click **POWER**, then play with `A`–`K` (white keys), `W E T Y U O` (black keys),
 `Z`/`X` to shift octave, the on-screen keys, or any MIDI controller (Chrome/Edge).

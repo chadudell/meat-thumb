@@ -17,9 +17,9 @@ const DEFAULT_SLOTS = [
   { src: 0, dest: '', amt: 0 },
 ];
 
-function loadSlots() {
+function loadSlots(storage) {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const saved = JSON.parse(storage.get(STORAGE_KEY));
     if (Array.isArray(saved) && saved.length === MOD_SLOTS) return saved;
   } catch {}
   return structuredClone(DEFAULT_SLOTS);
@@ -36,14 +36,12 @@ const destOptions = (() => {
   );
 })();
 
-export function createModMatrix({ host, send }) {
-  const slots = loadSlots();
+export function createModMatrix({ host, send, storage }) {
+  const slots = loadSlots(storage);
 
   const sendSlots = () => {
     send({ type: 'modSlots', slots });
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
-    } catch {}
+    storage.set(STORAGE_KEY, JSON.stringify(slots));
   };
 
   slots.forEach((slot, i) => {
@@ -144,7 +142,7 @@ export function createSourceDisplays({ getTilt }) {
       bctx.stroke();
       bctx.setLineDash([]);
       bctx.fillStyle = ink;
-      bctx.font = '9px JetBrains Mono, monospace';
+      bctx.font = `9px ${css.getPropertyValue('--mono')}`;
       bctx.fillText('|0⟩', c + 4, 9);
       bctx.fillText('|1⟩', c + 4, w - 2);
       const [x, y, z] = state.bloch;

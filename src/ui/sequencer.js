@@ -42,16 +42,18 @@ const DEFAULT_PATTERN = {
   ratchets: Array(STEPS).fill(1),
 };
 
-function loadState() {
+function loadState(storage) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.get(STORAGE_KEY);
     if (raw) return { ...structuredClone(DEFAULT_PATTERN), ...JSON.parse(raw) };
   } catch {}
   return structuredClone(DEFAULT_PATTERN);
 }
 
-export function createSequencer({ root: host, send, ensureAudio }) {
-  const state = loadState();
+// In the plugin, `hostTempo` hides BPM (the DAW sets it) and offers to follow
+// the DAW's transport instead of the Play button.
+export function createSequencer({ root: host, send, ensureAudio, storage, hostTempo = false }) {
+  const state = loadState(storage);
   const pattern = {
     cells: state.cells.map((c) => new Set(c)),
     accents: [...state.accents],
@@ -80,10 +82,8 @@ export function createSequencer({ root: host, send, ensureAudio }) {
   }
 
   const save = () => {
-    try {
-      const { cells, accents, probs, ratchets } = snapshot();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, cells, accents, probs, ratchets, original }));
-    } catch {}
+    const { cells, accents, probs, ratchets } = snapshot();
+    storage.set(STORAGE_KEY, JSON.stringify({ ...state, cells, accents, probs, ratchets, original }));
   };
 
   const scale = () => SCALES[state.scale];
@@ -99,6 +99,7 @@ export function createSequencer({ root: host, send, ensureAudio }) {
     <div class="seq-controls">
       <button class="seq-play" aria-pressed="false">▶ PLAY</button>
       <div class="knobs" data-group="seq"></div>
+      ${hostTempo ? `<div class="host-tempo"><span class="label">Tempo</span><strong class="host-bpm">—</strong><label class="toggle"><input type="checkbox" data-param="seqHostSync" checked> follow host transport</label></div>` : ''}
       <div class="seq-selects">
         <label>Root <select data-k="root">${NOTE_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join('')}</select></label>
         <label>Oct <select data-k="octave">${[1, 2, 3, 4].map((o) => `<option value="${o}">${o}</option>`).join('')}</select></label>
@@ -304,6 +305,7 @@ export function createSequencer({ root: host, send, ensureAudio }) {
   function addKnobs(group, defs) {
     const knobHost = host.querySelector(`.knobs[data-group="${group}"]`);
     for (const def of defs) {
+      if (def.name === 'bpm' && hostTempo) continue;
       const knob = createKnob({
         ...def,
         value: state[def.name],
@@ -386,11 +388,34 @@ export function createSequencer({ root: host, send, ensureAudio }) {
     } else {
       send({ type: 'seqStop' });
     }
-    playBtn.classList.toggle('on', playing);
-    playBtn.setAttribute('aria-pressed', String(playing));
-    playBtn.textContent = playing ? '■ STOP' : '▶ PLAY';
+    showPlaying();
   }
   playBtn.addEventListener('click', toggle);
+
+  let waiting = false; // plugin: armed, waiting for the DAW to press play
+  function showPlaying() {
+    playBtn.classList.toggle('on', playing && !waiting);
+    playBtn.classList.toggle('armed', waiting);
+    playBtn.setAttribute('aria-pressed', String(playing));
+    playBtn.textContent = waiting ? '● ARMED' : playing ? '■ STOP' : '▶ PLAY';
+  }
+
+  // Plugin: the engine may start/stop with the DAW's transport. Armed = Play
+  // was pressed; with "follow host transport" it waits for the DAW.
+  function setPlaying(running, armed = running) {
+    const p = running || armed;
+    const w = armed && !running;
+    if (p === playing && w === waiting) return;
+    playing = p;
+    waiting = w;
+    showPlaying();
+    if (!running) setStep(-1, false);
+  }
+
+  const bpmEl = host.querySelector('.host-bpm');
+  function setHostBpm(bpm) {
+    if (bpmEl) bpmEl.textContent = `${Math.round(bpm * 10) / 10}`;
+  }
 
   // --- Engine events ------------------------------------------------------------
   // Raw (un-delayed) step: mutate as the last step starts, so the new pattern
@@ -422,6 +447,8 @@ export function createSequencer({ root: host, send, ensureAudio }) {
     sendPattern,
     setStep,
     onEngineStep,
+    setPlaying,
+    setHostBpm,
     get playing() {
       return playing;
     },

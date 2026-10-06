@@ -1,5 +1,7 @@
 import { createKnob } from './ui/knob.js';
 import { createSequencer } from './ui/sequencer.js';
+import { createSpecimen } from './ui/specimen.js';
+import { createHost } from './host.js';
 import { LFO_DIVISIONS } from './dsp/lfo.js';
 import { DELAY_DIVISIONS } from './dsp/tempo-delay.js';
 import { qubitRateHz, qubitMeasureHz } from './dsp/mod-sources.js';
@@ -92,92 +94,127 @@ const KNOBS = {
 const GROUP_TARGET = { reverb: 'reverb', delay: 'delay' };
 const MESSAGE_TYPE = { synth: 'param', reverb: 'reverbParam', delay: 'delayParam' };
 
-// ---- Audio engine -----------------------------------------------------------
 
-let ctx = null;
-let node = null;
-let analyser = null;
+// ---- Engine host --------------------------------------------------------------
+// Web: the AudioWorklet, started by POWER. Plugin: the AU, which already owns
+// the state — wait for it before building anything that reads saved state.
+
+const host = createHost();
+const isPlugin = host.kind === 'plugin';
+document.body.classList.toggle('plugin', isPlugin);
+const init = isPlugin ? await host.start() : null;
+
 const params = {};
+const controls = {}; // key → { set(value) } so the AU can move knobs (automation, presets)
 
 // Params are keyed "target:name" (e.g. "delay:mix") so modules can share names.
 function setParam(key, value) {
   params[key] = value;
+  lastLocal[key] = performance.now();
   const [target, name] = key.includes(':') ? key.split(':') : ['synth', key];
-  node?.port.postMessage({ type: MESSAGE_TYPE[target], name, value });
+  host.post({ type: MESSAGE_TYPE[target], name, value });
+  specimen.update(params);
 }
 const keyOf = (target, name) => (target && target !== 'synth' ? `${target}:${name}` : name);
 
-async function startAudio() {
-  ctx = new AudioContext({ latencyHint: 'interactive' });
-  await ctx.audioWorklet.addModule('src/dsp/meat-thumb-processor.js');
-  node = new AudioWorkletNode(ctx, 'meat-thumb', { outputChannelCount: [2] });
-  node.port.onmessage = ({ data }) => {
-    if (data.type === 'meter') {
-      onMeter(data);
-      sources.update(data);
-    } else if (data.type === 'step') {
-      seq.onEngineStep(data.step);
-      // Show the playhead when the step is heard, not when it's computed.
-      const latency = (ctx.baseLatency || 0) + (ctx.outputLatency || 0);
-      setTimeout(() => seq.setStep(data.step, data.played), latency * 1000);
-    }
-  };
-  analyser = ctx.createAnalyser();
-  analyser.fftSize = 2048;
-  node.connect(analyser);
-  analyser.connect(ctx.destination);
-  for (const [name, value] of Object.entries(params)) setParam(name, value);
-  seq.sendPattern();
-  matrix.sendSlots();
-  drawScope();
-  drawHorizon();
+// Values coming back from the AU. Skip a knob you're touching, so a slightly
+// stale echo can't yank it back mid-drag.
+const lastLocal = {};
+const touching = new Set();
+function applyRemote(values) {
+  const now = performance.now();
+  for (const [key, value] of Object.entries(values)) {
+    if (!(key in params)) continue;
+    if (touching.has(key) || now - (lastLocal[key] || 0) < 250) continue;
+    params[key] = value;
+    controls[key]?.set(value);
+  }
+  showSyncedKnobs();
+  specimen.update(params);
 }
 
 const powerBtn = document.getElementById('power');
+async function startWebAudio() {
+  await host.boot();
+  for (const [name, value] of Object.entries(params)) setParam(name, value);
+  seq.sendPattern();
+  matrix.sendSlots();
+}
+
 powerBtn.addEventListener('click', async () => {
-  if (!ctx) {
-    await startAudio();
-  } else if (ctx.state === 'running') {
-    node.port.postMessage({ type: 'allOff' });
-    await ctx.suspend();
-  } else {
-    await ctx.resume();
-  }
-  const on = ctx.state === 'running';
-  powerBtn.classList.toggle('on', on);
-  powerBtn.setAttribute('aria-pressed', String(on));
+  if (!host.started) await startWebAudio();
+  else if (host.running) {
+    host.post({ type: 'allOff' });
+    await host.suspend();
+  } else await host.resume();
+  powerBtn.classList.toggle('on', host.running);
+  powerBtn.setAttribute('aria-pressed', String(host.running));
 });
 
 async function ensureAudio() {
-  if (!ctx) await startAudio();
-  else if (ctx.state !== 'running') await ctx.resume();
+  if (isPlugin) return;
+  if (!host.started) await startWebAudio();
+  else if (!host.running) await host.resume();
   powerBtn.classList.add('on');
   powerBtn.setAttribute('aria-pressed', 'true');
 }
 
+host.onMessage((data) => {
+  if (data.type === 'meter') {
+    onMeter(data);
+    sources.update(data);
+    specimen.feed(data);
+    if (isPlugin) {
+      if (data.scope) scopeData.set(data.scope.slice(0, scopeData.length));
+      seq.setPlaying(!!data.seqPlaying, !!data.seqArmed);
+      if (data.bpm) seq.setHostBpm(data.bpm);
+    }
+  } else if (data.type === 'step') {
+    seq.onEngineStep(data.step);
+    // Show the playhead when the step is heard, not when it's computed.
+    setTimeout(() => seq.setStep(data.step, data.played), host.latency ? host.latency * 1000 : 0);
+  } else if (data.type === 'params') {
+    applyRemote(data.values);
+  }
+});
+
+const specimen = createSpecimen(document.getElementById('specimen'));
+
 const matrix = createModMatrix({
   host: document.getElementById('slots'),
-  send: (msg) => node?.port.postMessage(msg),
+  send: (msg) => host.post(msg),
+  storage: host.storage,
 });
 const sources = createSourceDisplays({ getTilt: () => params.qubitTilt });
 
 const seq = createSequencer({
   root: document.getElementById('seq-body'),
-  send: (msg) => node?.port.postMessage(msg),
+  send: (msg) => host.post(msg),
   ensureAudio,
+  storage: host.storage,
+  hostTempo: isPlugin,
 });
 
 // ---- Controls ---------------------------------------------------------------
 
 const knobEls = {};
 for (const [group, defs] of Object.entries(KNOBS)) {
-  const host = document.querySelector(`.knobs[data-group="${group}"]`);
+  const knobHost = document.querySelector(`.knobs[data-group="${group}"]`);
   for (const def of defs) {
     const key = keyOf(GROUP_TARGET[group], def.name);
     params[key] = def.value;
-    const knob = createKnob({ ...def, onChange: (v) => setParam(key, v) });
+    const knob = createKnob({
+      ...def,
+      onChange: (v) => setParam(key, v),
+      onGesture: (on) => {
+        if (on) touching.add(key);
+        else touching.delete(key);
+        host.gesture(key, on);
+      },
+    });
     knobEls[key] = knob.el;
-    host.appendChild(knob.el);
+    controls[key] = { set: (v) => knob.set(v, false) };
+    knobHost.appendChild(knob.el);
   }
 }
 
@@ -185,22 +222,29 @@ for (const group of document.querySelectorAll('.select-group')) {
   const name = keyOf(group.dataset.target, group.dataset.param);
   const buttons = [...group.querySelectorAll('button')];
   params[name] = Number(group.querySelector('.on').dataset.value);
+  const show = (v) => buttons.forEach((x) => x.classList.toggle('on', Number(x.dataset.value) === v));
+  controls[name] = { set: show };
   for (const b of buttons) {
     b.addEventListener('click', () => {
-      buttons.forEach((x) => x.classList.toggle('on', x === b));
+      show(Number(b.dataset.value));
+      host.gesture(name, true);
       setParam(name, Number(b.dataset.value));
+      host.gesture(name, false);
     });
   }
 }
 
 for (const sel of document.querySelectorAll('select[data-param]')) {
-  params[sel.dataset.param] = Number(sel.value);
-  sel.addEventListener('change', () => setParam(sel.dataset.param, Number(sel.value)));
+  const key = sel.dataset.param;
+  params[key] = Number(sel.value);
+  controls[key] = { set: (v) => (sel.value = String(v)) };
+  sel.addEventListener('change', () => setParam(key, Number(sel.value)));
 }
 
 for (const input of document.querySelectorAll('input[type=checkbox][data-param]')) {
   const key = keyOf(input.dataset.target, input.dataset.param);
   params[key] = input.checked;
+  controls[key] = { set: (v) => (input.checked = !!v) };
   input.addEventListener('change', () => {
     setParam(key, input.checked);
     showSyncedKnobs();
@@ -216,16 +260,35 @@ function showSyncedKnobs() {
   knobEls['delay:timeMs'].hidden = params['delay:sync'];
   knobEls['delay:div'].hidden = !params['delay:sync'];
 }
-showSyncedKnobs();
 
 const freezeBtn = document.getElementById('freeze');
 params['reverb:freeze'] = false;
+const showFreeze = (on) => {
+  freezeBtn.classList.toggle('on', on);
+  freezeBtn.setAttribute('aria-pressed', String(on));
+};
+controls['reverb:freeze'] = { set: (v) => showFreeze(!!v) };
 freezeBtn.addEventListener('click', () => {
   const on = !params['reverb:freeze'];
   setParam('reverb:freeze', on);
-  freezeBtn.classList.toggle('on', on);
-  freezeBtn.setAttribute('aria-pressed', String(on));
+  showFreeze(on);
 });
+
+if (init?.params) {
+  // The AU's saved state wins over the UI defaults.
+  for (const [key, value] of Object.entries(init.params)) {
+    if (!(key in params)) continue;
+    params[key] = value;
+    controls[key]?.set(value);
+  }
+}
+showSyncedKnobs();
+specimen.update(params);
+if (isPlugin) {
+  // Hand the AU this instance's pattern and matrix (new instances get the defaults).
+  seq.sendPattern();
+  matrix.sendSlots();
+}
 
 // ---- Notes ------------------------------------------------------------------
 
@@ -233,15 +296,15 @@ const held = new Set();
 
 async function noteOn(note, velocity = 0.9) {
   await ensureAudio();
-  if (ctx.state !== 'running') return;
+  if (!isPlugin && !host.running) return;
   held.add(note);
-  node.port.postMessage({ type: 'noteOn', note, velocity });
+  host.post({ type: 'noteOn', note, velocity });
   keyEls.get(note)?.classList.add('down');
 }
 
 function noteOff(note) {
   held.delete(note);
-  node?.port.postMessage({ type: 'noteOff', note });
+  host.post({ type: 'noteOff', note });
   keyEls.get(note)?.classList.remove('down');
 }
 
@@ -332,8 +395,11 @@ window.addEventListener('blur', () => {
 });
 
 // Web MIDI
+// (In the plugin, MIDI arrives from the DAW instead.)
 const midiStatus = document.getElementById('midi-status');
-if (navigator.requestMIDIAccess) {
+if (isPlugin) {
+  midiStatus.textContent = 'MIDI: from host';
+} else if (navigator.requestMIDIAccess) {
   navigator.requestMIDIAccess().then((access) => {
     const bind = () => {
       const inputs = [...access.inputs.values()];
@@ -354,12 +420,14 @@ if (navigator.requestMIDIAccess) {
 }
 
 // ---- Scope ------------------------------------------------------------------
+// Web: read the AnalyserNode. Plugin: the AU ships a short buffer with each meter.
 
 const scope = document.getElementById('scope');
 const sctx = scope.getContext('2d');
+const scopeBuf = new Float32Array(2048);
+const scopeData = new Float32Array(1024);
 
 function drawScope() {
-  const buf = new Float32Array(analyser.fftSize);
   const render = () => {
     const dpr = window.devicePixelRatio || 1;
     const w = scope.clientWidth;
@@ -369,7 +437,13 @@ function drawScope() {
       scope.height = h * dpr;
     }
     sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    analyser.getFloatTimeDomainData(buf);
+    let buf = scopeData;
+    if (!isPlugin && host.readScope(scopeBuf)) {
+      buf = scopeBuf;
+      let peak = 0;
+      for (let i = 0; i < buf.length; i += 4) peak = Math.max(peak, Math.abs(buf[i]));
+      specimen.feed({ level: peak });
+    }
 
     // Trigger on a rising zero crossing so the trace holds still.
     let start = 0;
@@ -391,7 +465,7 @@ function drawScope() {
     sctx.strokeStyle = css.getPropertyValue('--trace');
     sctx.lineWidth = 2;
     sctx.beginPath();
-    const span = 1024;
+    const span = Math.min(1024, buf.length - start);
     for (let x = 0; x < w; x++) {
       const v = buf[start + Math.floor((x / w) * span)] || 0;
       const y = h / 2 - v * (h / 2) * 0.9;
@@ -402,6 +476,7 @@ function drawScope() {
   };
   render();
 }
+drawScope();
 
 // ---- Event horizon ----------------------------------------------------------
 // Ring brightness/size follows reverb energy; each quantum jump spawns a
@@ -478,3 +553,4 @@ function drawHorizon() {
   };
   render();
 }
+drawHorizon();

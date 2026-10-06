@@ -4,20 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Meat Thumb</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/thumbs/07-max-meat.webp">
   <link rel="stylesheet" href="src/style.css">
 </head>
 <body>
-  <main class="synth">
-    <header class="top">
-      <div class="brand">
-        <h1>MEAT<span>THUMB</span></h1>
-        <p class="tag">fat oscillator · v0.1</p>
+  <main class="shop">
+    <header class="masthead">
+      <div class="dateline">
+        <span>Vol. 1 · Nº 07</span>
+        <span class="dateline-mid">Synthesis &amp; Provisions · Cut to order</span>
+        <span>Fat oscillator · v0.2</span>
       </div>
-      <canvas id="scope" width="640" height="120" aria-label="Oscilloscope"></canvas>
-      <button id="power" class="power" aria-pressed="false">POWER</button>
+      <div class="mast">
+        <h1 class="title"><img src="assets/meat-thumb-wordmark.webp" alt="Meat Thumb" draggable="false"></h1>
+        <div class="scale">
+          <span class="scale-label">Live weight</span>
+          <canvas id="scope" width="640" height="120" aria-label="Oscilloscope"></canvas>
+        </div>
+        <button id="power" class="power" aria-pressed="false">POWER</button>
+      </div>
+      <div class="rule"></div>
     </header>
+
+    <div class="counter">
+    <aside id="specimen" class="specimen" aria-label="The Specimen"></aside>
+    <div class="cuts">
 
     <section class="panel" id="osc">
       <h2>Oscillator</h2>
@@ -159,6 +170,9 @@
       <h2>Sequencer</h2>
       <div id="seq-body"></div>
     </section>
+
+    </div>
+    </div>
 
     <section class="keys-wrap">
       <div class="keys-info">
