@@ -151,3 +151,21 @@ boundaries, so timing is sample-accurate — no main-thread jitter.
 - `src/ui/mod-matrix.js` — matrix slots, Bloch sphere and Lorenz displays
 - `src/main.js` — UI wiring, keyboard, MIDI, scope
 - `src/ui/knob.js` — knob control (drag, shift-drag for fine, wheel, arrows, double-click reset)
+
+## C++ engine
+
+`plugin/Source/dsp/` is a C++17 port of `src/dsp` (no dependencies), for running
+Meat Thumb natively — e.g. inside an Audio Unit or VST. It is real-time safe (no
+allocation, locks or exceptions while rendering) and renders the same samples as
+the JS engine. The `Engine` class takes the same messages the UI sends the
+worklet (params, notes, pattern, mod slots), plus sample-accurate MIDI events.
+
+```
+plugin/tests/run_parity.sh
+```
+
+renders 23 patches (filters, folder, sub, drive, delay, reverb, mod matrix,
+sequencer…) through both engines and compares them — they are bit-identical,
+including at odd host block sizes — then checks sample accuracy and allocations
+and runs a CPU benchmark (~8% of one Apple M1 core at 8 voices × 9 unison with
+every effect on). Needs macOS's built-in `jsc`, clang++ and python3 with numpy.

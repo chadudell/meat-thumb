@@ -1,3 +1,6 @@
 .DS_Store
 node_modules/
 .claude/
+plugin/build/
+plugin/tests/out/
+__pycache__/

@@ -1,0 +1,300 @@
+# Parity scenarios, read by both render_js.mjs and render_cpp.cpp.
+#
+# Lines before the first `scenario` are a prelude sent at block 0 of every
+# scenario (they switch off every source of randomness).
+# Inside a scenario: `<block> <command> args...` (a block = 128 frames @ 48 kHz).
+# Commands (mirror the UI's port messages):
+#   param NAME V | delayParam NAME V | reverbParam NAME V
+#   modSlots SRC:DEST:AMT ...        (up to 8 slots; DEST is the JS key)
+#   seqStep IDX ACCENT PROB RATCHET NOTES   (NOTES: comma list or '-'; staged)
+#   seq BPM SWING GATE LENGTH        (sends the staged steps)
+#   seqPlay | seqStop | noteOn NOTE VEL | noteOff NOTE | allOff
+
+param randomPhase 0
+param drift 0
+param qubitMeasure 0
+delayParam wow 0
+reverbParam quantum 0
+
+scenario default_chord 750
+0 noteOn 57 1
+0 noteOn 60 1
+0 noteOn 64 1
+560 noteOff 57
+560 noteOff 60
+560 noteOff 64
+end
+
+scenario lp24_reso_env_sweep 750
+0 param resonance 0.95
+0 param cutoff 0.2
+0 param filterEnvAmt 0.8
+0 param fDecay 0.8
+0 param fSustain 0
+0 noteOn 45 1
+240 noteOff 45
+250 noteOn 45 0.7
+500 noteOn 52 1
+700 noteOff 45
+700 noteOff 52
+end
+
+scenario lp12 750
+0 param filterMode 1
+0 param resonance 0.7
+0 param cutoff 0.4
+0 param filterEnvAmt 0.5
+0 noteOn 48 1
+0 noteOn 55 0.8
+600 noteOff 48
+600 noteOff 55
+end
+
+scenario bp 750
+0 param filterMode 2
+0 param resonance 0.8
+0 param cutoff 0.55
+0 param filterEnvAmt -0.4
+0 noteOn 50 1
+0 noteOn 62 0.5
+600 allOff
+end
+
+scenario hp 750
+0 param filterMode 3
+0 param resonance 0.5
+0 param cutoff 0.6
+0 param filterEnvAmt 0.3
+0 param keyTrack 1
+0 noteOn 36 1
+0 noteOn 60 0.9
+600 noteOff 36
+600 noteOff 60
+end
+
+scenario pulse 750
+0 param wave 1
+0 param pulseWidth 0.3
+0 param unison 5
+0 param detune 0.6
+0 noteOn 52 1
+300 noteOn 59 0.6
+600 noteOff 52
+600 noteOff 59
+end
+
+scenario triangle 750
+0 param wave 2
+0 param unison 3
+0 param octave 1
+0 param fine -23
+0 param cutoff 0.9
+0 noteOn 64 1
+0 noteOn 40 1
+650 allOff
+end
+
+scenario fold_sym 750
+0 param fold 0.7
+0 param foldSym 0.4
+0 param unison 4
+0 noteOn 45 1
+0 noteOn 57 0.8
+300 param fold 0
+400 param fold 0.35
+600 allOff
+end
+
+scenario sub_square_m2 750
+0 param subType 2
+0 param subOctave -2
+0 param subLevel 0.8
+0 param unison 1
+0 noteOn 52 1
+600 noteOff 52
+end
+
+scenario drive_high 750
+0 param drive 1
+0 param volume 1
+0 param unison 9
+0 param blend 1
+0 param width 1
+0 noteOn 40 1
+0 noteOn 47 1
+0 noteOn 52 1
+600 allOff
+end
+
+scenario delay_stereo_fb 750
+0 delayParam mode 0
+0 delayParam mix 0.6
+0 delayParam feedback 1.05
+0 delayParam div 6
+0 delayParam tone 0.8
+0 delayParam duck 0.5
+0 param release 0.05
+0 noteOn 60 1
+20 noteOff 60
+100 noteOn 67 1
+120 noteOff 67
+end
+
+scenario delay_pingpong_free 750
+0 delayParam mode 1
+0 delayParam sync 0
+0 delayParam timeMs 230
+0 delayParam feedback 1.1
+0 delayParam mix 0.7
+0 delayParam duck 0
+0 delayParam tone 0
+0 param release 0.05
+0 noteOn 55 1
+25 noteOff 55
+400 delayParam timeMs 90
+end
+
+scenario reverb_shimmer 750
+0 reverbParam mix 0.6
+0 reverbParam shimmer 0.8
+0 reverbParam size 0.8
+0 reverbParam decay 0.8
+0 reverbParam damp 0.2
+0 reverbParam mod 0.7
+0 noteOn 60 1
+0 noteOn 67 1
+150 allOff
+end
+
+scenario reverb_gravity 750
+0 reverbParam mix 0.7
+0 reverbParam gravity 0.7
+0 reverbParam predelay 0.11
+0 noteOn 57 1
+40 noteOff 57
+300 noteOn 64 1
+340 noteOff 64
+500 reverbParam gravity 0.2
+end
+
+scenario reverb_freeze 750
+0 reverbParam mix 0.8
+0 reverbParam size 1
+0 noteOn 50 1
+0 noteOn 57 1
+200 reverbParam freeze 1
+220 allOff
+600 reverbParam freeze 0
+end
+
+scenario lfo1_sync_cutoff 750
+0 param lfoSync 1
+0 param lfoDiv 8
+0 param lfoShape 2
+0 param lfoAmt 0.6
+0 param resonance 0.6
+0 noteOn 45 1
+0 noteOn 52 1
+375 param lfoShape 1
+500 param lfoShape 3
+650 allOff
+end
+
+scenario lfo1_free_retrig 750
+0 param lfoRate 7
+0 param lfoAmt -0.5
+0 param lfoRetrig 1
+0 noteOn 48 1
+200 noteOn 55 1
+400 noteOn 60 1
+650 allOff
+end
+
+scenario mod_lfo2_fold 750
+0 param lfo2Rate 3
+0 param lfo2Shape 0
+0 param lfoRate 5
+0 modSlots 2:fold:0.8 1:pitch:0.05 2:width:-1 2:blend:0.7 1:delay:mix:0.5
+0 noteOn 50 1
+0 noteOn 57 1
+400 modSlots 2:fold:0.8
+650 allOff
+end
+
+scenario mod_lorenz_cutoff 375
+0 param lorenzSpeed 0.6
+0 param resonance 0.5
+0 modSlots 4:cutoff:0.6 4:reverb:mix:0.5
+0 noteOn 45 1
+300 allOff
+end
+
+scenario mod_qubit_pitch 750
+0 param qubitRate 0.7
+0 param qubitTilt 0.6
+0 modSlots 3:pitch:0.1 3:drive:0.5 3:delay:feedback:0.3
+0 noteOn 57 1
+650 allOff
+end
+
+scenario seq_default_pattern 750
+0 seqStep 0 1 1 1 45
+0 seqStep 1 0 1 1 -
+0 seqStep 2 0 1 2 45
+0 seqStep 3 1 1 1 57
+0 seqStep 4 0 1 1 -
+0 seqStep 5 0 1 3 45
+0 seqStep 6 0 1 1 -
+0 seqStep 7 0 1 4 53
+0 seqStep 8 1 1 1 45
+0 seqStep 9 0 1 1 -
+0 seqStep 10 0 1 2 48
+0 seqStep 11 1 1 1 -
+0 seqStep 12 0 1 4 52
+0 seqStep 13 0 1 1 -
+0 seqStep 14 0 1 3 48,55
+0 seqStep 15 0 1 1 -
+0 seq 124 0.12 0.55 16
+0 seqPlay
+end
+
+scenario seq_sync_fx 750
+0 param lfoSync 1
+0 param lfoDiv 5
+0 param lfoAmt 0.4
+0 param lfo2Sync 1
+0 param lfo2Div 3
+0 modSlots 2:resonance:0.6
+0 delayParam mix 0.4
+0 delayParam div 3
+0 reverbParam mix 0.4
+0 seqStep 0 1 1 2 45,52
+0 seqStep 1 0 1 1 57
+0 seqStep 2 0 1 4 45
+0 seqStep 3 1 1 1 -
+0 seqStep 4 0 1 3 60,64,67
+0 seqStep 5 0 1 1 48
+0 seq 140 0.3 1 6
+0 seqPlay
+600 seqStop
+end
+
+scenario voice_steal 750
+0 param release 0.6
+0 param unison 2
+0 noteOn 40 1
+20 noteOn 43 1
+40 noteOn 47 1
+60 noteOn 50 1
+70 noteOff 43
+80 noteOn 53 1
+100 noteOn 57 1
+120 noteOn 60 1
+140 noteOn 64 1
+160 noteOn 67 1
+180 noteOn 71 1
+200 noteOn 40 0.3
+300 allOff
+400 noteOn 76 1
+600 noteOff 76
+end
