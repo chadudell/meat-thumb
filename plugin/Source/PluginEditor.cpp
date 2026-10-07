@@ -56,9 +56,11 @@ MeatThumbEditor::MeatThumbEditor(MeatThumbProcessor& p)
   addAndMakeVisible(browser);
   browser.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
 
+  // The faceplate is drawn at 1600 x 1000 and zoomed to fit, so keep its proportions.
   setResizable(true, true);
-  setResizeLimits(960, 640, 2400, 1800);
-  setSize(1280, 860);
+  setResizeLimits(960, 600, 2560, 1600);
+  if (auto* c = getConstrainer()) c->setFixedAspectRatio(1.6);
+  setSize(1440, 900);
   startTimerHz(30);
 }
 

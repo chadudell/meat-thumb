@@ -71,6 +71,7 @@ export function createModMatrix({ host, send, storage }) {
     });
     const knob = createKnob({
       label: 'Amount',
+      size: 'xxs',
       min: -1,
       max: 1,
       value: slot.amt,

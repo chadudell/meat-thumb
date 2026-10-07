@@ -5,24 +5,33 @@
 
 const SWEEP = 270;
 
-export function createKnob({ label, min, max, value, step = 0, bipolar = false, format = (v) => v.toFixed(2), onChange, onGesture }) {
+// Drawn as a cream bakelite cap (rotates) inside a printed tick ring, with a
+// thin red value arc. `size`: 'lg' | 'md' | 'sm' | 'xs'.
+const TICKS = Array.from({ length: 11 }, (_, i) => {
+  const a = ((-SWEEP / 2 + (i * SWEEP) / 10 - 90) * Math.PI) / 180;
+  return `<line x1="${32 + 29 * Math.cos(a)}" y1="${32 + 29 * Math.sin(a)}" x2="${32 + 31.5 * Math.cos(a)}" y2="${32 + 31.5 * Math.sin(a)}"></line>`;
+}).join('');
+
+export function createKnob({ label, min, max, value, step = 0, bipolar = false, size = 'md', title, format = (v) => v.toFixed(2), onChange, onGesture }) {
   const el = document.createElement('div');
-  el.className = 'knob';
+  el.className = `knob ${size}`;
+  if (title) el.title = title;
   el.innerHTML = `
     <div class="dial" tabindex="0" role="slider" aria-label="${label}"
          aria-valuemin="${min}" aria-valuemax="${max}">
       <svg viewBox="0 0 64 64" aria-hidden="true">
+        <g class="ticks">${TICKS}</g>
         <path class="track" d=""></path>
         <path class="fill" d=""></path>
-        <line class="pointer" x1="32" y1="32" x2="32" y2="12"></line>
       </svg>
+      <div class="cap"><span class="pointer"></span></div>
     </div>
     <div class="readout"></div>
     <div class="label">${label}</div>`;
 
   const dial = el.querySelector('.dial');
   const fillPath = el.querySelector('.fill');
-  const pointer = el.querySelector('.pointer');
+  const cap = el.querySelector('.cap');
   const readout = el.querySelector('.readout');
   el.querySelector('.track').setAttribute('d', arc(-SWEEP / 2, SWEEP / 2));
 
@@ -38,7 +47,7 @@ export function createKnob({ label, min, max, value, step = 0, bipolar = false, 
     const from = bipolar ? 0 : -SWEEP / 2;
     const [a0, a1] = angle < from ? [angle, from] : [from, angle];
     fillPath.setAttribute('d', a1 - a0 > 0.3 ? arc(a0, a1) : '');
-    pointer.setAttribute('transform', `rotate(${angle} 32 32)`);
+    cap.style.transform = `rotate(${angle}deg)`;
     readout.textContent = format(v);
     dial.setAttribute('aria-valuenow', String(v));
     if (emit) onChange?.(v);
@@ -91,7 +100,7 @@ export function createKnob({ label, min, max, value, step = 0, bipolar = false, 
 }
 
 function arc(a0, a1) {
-  const r = 26;
+  const r = 25.5;
   const p = (a) => {
     const rad = ((a - 90) * Math.PI) / 180;
     return [32 + r * Math.cos(rad), 32 + r * Math.sin(rad)];

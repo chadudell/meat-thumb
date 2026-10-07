@@ -1,6 +1,7 @@
 import { createKnob } from './ui/knob.js';
 import { createSequencer } from './ui/sequencer.js';
 import { createSpecimen } from './ui/specimen.js';
+import { createPresets } from './ui/presets.js';
 import { createHost } from './host.js';
 import { LFO_DIVISIONS } from './dsp/lfo.js';
 import { DELAY_DIVISIONS } from './dsp/tempo-delay.js';
@@ -14,81 +15,89 @@ const hz = (v) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `$
 const signedPct = (v) => (Math.abs(v) < 0.005 ? '0' : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`);
 const secs = (v) => (v < 1 ? `${Math.round(v * 1000)}ms` : v < 10 ? `${v.toFixed(2)}s` : `${Math.round(v)}s`);
 
+// Grouped by faceplate panel (data-group hosts in index.html). `size` is the
+// knob's cap size on the faceplate.
 const KNOBS = {
   osc: [
-    { name: 'pulseWidth', label: 'PW', min: 0.05, max: 0.95, value: 0.5, format: pct },
-    { name: 'octave', label: 'Octave', min: -2, max: 2, value: 0, step: 1, format: (v) => (v > 0 ? `+${v}` : `${v}`) },
-    { name: 'fine', label: 'Fine', min: -100, max: 100, value: 0, step: 1, format: (v) => `${v}c` },
-    { name: 'drive', label: 'Drive', min: 0, max: 1, value: 0.35, format: pct },
-    { name: 'fold', label: 'Fold', min: 0, max: 1, value: 0, format: (v) => (v < 0.005 ? 'off' : pct(v)) },
-    { name: 'foldSym', label: 'Sym', min: -1, max: 1, value: 0, bipolar: true, format: signedPct },
+    { name: 'pulseWidth', label: 'PW', size: 'lg', min: 0.05, max: 0.95, value: 0.5, format: pct },
+    { name: 'octave', label: 'Oct', size: 'sm', min: -2, max: 2, value: 0, step: 1, format: (v) => (v > 0 ? `+${v}` : `${v}`) },
+    { name: 'fine', label: 'Fine', size: 'sm', min: -100, max: 100, value: 0, step: 1, format: (v) => `${v}c` },
   ],
   unison: [
-    { name: 'unison', label: 'Voices', min: 1, max: 9, value: 7, step: 1, format: (v) => `${v}` },
-    { name: 'detune', label: 'Detune', min: 0, max: 1, value: 0.35, format: pct },
-    { name: 'blend', label: 'Blend', min: 0, max: 1, value: 0.6, format: pct },
-    { name: 'width', label: 'Width', min: 0, max: 1, value: 0.8, format: pct },
-    { name: 'drift', label: 'Drift', min: 0, max: 1, value: 0.3, format: pct },
+    { name: 'unison', label: 'Voices', size: 'lg', min: 1, max: 9, value: 7, step: 1, format: (v) => `${v}` },
+    { name: 'detune', label: 'Detune', size: 'sm', min: 0, max: 1, value: 0.35, format: pct },
+    { name: 'width', label: 'Spread', size: 'sm', min: 0, max: 1, value: 0.8, format: pct },
+    { name: 'blend', label: 'Blend', size: 'sm', min: 0, max: 1, value: 0.6, format: pct },
+    { name: 'drift', label: 'Drift', size: 'sm', min: 0, max: 1, value: 0.3, format: pct },
   ],
   sub: [
-    { name: 'subLevel', label: 'Level', min: 0, max: 1, value: 0.4, format: pct },
-  ],
-  amp: [
-    { name: 'attack', label: 'Attack', min: 0.001, max: 2, value: 0.005, format: secs },
-    { name: 'decay', label: 'Decay', min: 0.01, max: 3, value: 0.3, format: secs },
-    { name: 'sustain', label: 'Sustain', min: 0, max: 1, value: 0.85, format: pct },
-    { name: 'release', label: 'Release', min: 0.01, max: 4, value: 0.25, format: secs },
-    { name: 'volume', label: 'Volume', min: 0, max: 1, value: 0.7, format: pct },
+    { name: 'subLevel', label: 'Level', size: 'md', min: 0, max: 1, value: 0.4, format: pct },
   ],
   filter: [
-    { name: 'cutoff', label: 'Cutoff', min: 0, max: 1, value: 0.7, format: (v) => hz(20 * Math.pow(1000, v)) },
-    { name: 'resonance', label: 'Res', min: 0, max: 1, value: 0.2, format: pct },
-    { name: 'filterEnvAmt', label: 'Env', min: -1, max: 1, value: 0.25, bipolar: true, format: signedPct },
-    { name: 'keyTrack', label: 'Key', min: 0, max: 1, value: 0.5, format: pct },
-    { name: 'fAttack', label: 'F.Atk', min: 0.001, max: 2, value: 0.005, format: secs },
-    { name: 'fDecay', label: 'F.Dec', min: 0.01, max: 3, value: 0.4, format: secs },
-    { name: 'fSustain', label: 'F.Sus', min: 0, max: 1, value: 0.3, format: pct },
-    { name: 'fRelease', label: 'F.Rel', min: 0.01, max: 4, value: 0.3, format: secs },
+    { name: 'cutoff', label: 'Cutoff', size: 'lg', min: 0, max: 1, value: 0.7, format: (v) => hz(20 * Math.pow(1000, v)) },
+    { name: 'resonance', label: 'Resonance', size: 'lg', min: 0, max: 1, value: 0.2, format: pct },
+  ],
+  fold: [
+    { name: 'filterEnvAmt', label: 'Env', size: 'sm', min: -1, max: 1, value: 0.25, bipolar: true, format: signedPct },
+    { name: 'keyTrack', label: 'Key', size: 'sm', min: 0, max: 1, value: 0.5, format: pct },
+    { name: 'drive', label: 'Drive', size: 'sm', min: 0, max: 1, value: 0.35, format: pct },
+    { name: 'fold', label: 'Fold', size: 'sm', min: 0, max: 1, value: 0, format: (v) => (v < 0.005 ? 'off' : pct(v)) },
+    { name: 'foldSym', label: 'Sym', size: 'sm', min: -1, max: 1, value: 0, bipolar: true, format: signedPct },
+  ],
+  amp: [
+    { name: 'attack', label: 'A', size: 'xs', min: 0.001, max: 2, value: 0.005, format: secs },
+    { name: 'decay', label: 'D', size: 'xs', min: 0.01, max: 3, value: 0.3, format: secs },
+    { name: 'sustain', label: 'S', size: 'xs', min: 0, max: 1, value: 0.85, format: pct },
+    { name: 'release', label: 'R', size: 'xs', min: 0.01, max: 4, value: 0.25, format: secs },
+  ],
+  fenv: [
+    { name: 'fAttack', label: 'A', size: 'xs', min: 0.001, max: 2, value: 0.005, format: secs },
+    { name: 'fDecay', label: 'D', size: 'xs', min: 0.01, max: 3, value: 0.4, format: secs },
+    { name: 'fSustain', label: 'S', size: 'xs', min: 0, max: 1, value: 0.3, format: pct },
+    { name: 'fRelease', label: 'R', size: 'xs', min: 0.01, max: 4, value: 0.3, format: secs },
+  ],
+  output: [
+    { name: 'volume', label: 'Volume', size: 'lg', min: 0, max: 1, value: 0.7, format: pct },
   ],
   lfo: [
-    { name: 'lfoRate', label: 'Rate', min: 0.05, max: 30, value: 2, format: (v) => `${v < 10 ? v.toFixed(2) : v.toFixed(1)}Hz` },
-    { name: 'lfoDiv', label: 'Div', min: 0, max: LFO_DIVISIONS.length - 1, value: 8, step: 1, format: (v) => LFO_DIVISIONS[v].label },
-    { name: 'lfoAmt', label: 'Amount', min: -1, max: 1, value: 0, bipolar: true, format: signedPct },
+    { name: 'lfoRate', label: 'Rate', size: 'xs', min: 0.05, max: 30, value: 2, format: (v) => `${v < 10 ? v.toFixed(2) : v.toFixed(1)}Hz` },
+    { name: 'lfoDiv', label: 'Div', size: 'xs', min: 0, max: LFO_DIVISIONS.length - 1, value: 8, step: 1, format: (v) => LFO_DIVISIONS[v].label },
+    { name: 'lfoAmt', label: 'Amount', size: 'xs', title: 'LFO 1 → cutoff', min: -1, max: 1, value: 0, bipolar: true, format: signedPct },
   ],
   lfo2: [
-    { name: 'lfo2Rate', label: 'Rate', min: 0.02, max: 20, value: 0.3, format: (v) => `${v < 10 ? v.toFixed(2) : v.toFixed(1)}Hz` },
-    { name: 'lfo2Div', label: 'Div', min: 0, max: LFO_DIVISIONS.length - 1, value: 2, step: 1, format: (v) => LFO_DIVISIONS[v].label },
+    { name: 'lfo2Rate', label: 'Rate', size: 'xs', min: 0.02, max: 20, value: 0.3, format: (v) => `${v < 10 ? v.toFixed(2) : v.toFixed(1)}Hz` },
+    { name: 'lfo2Div', label: 'Div', size: 'xs', min: 0, max: LFO_DIVISIONS.length - 1, value: 2, step: 1, format: (v) => LFO_DIVISIONS[v].label },
   ],
   qubit: [
-    { name: 'qubitRate', label: 'Rabi', min: 0, max: 1, value: 0.5, format: (v) => `${qubitRateHz(v).toFixed(qubitRateHz(v) < 1 ? 2 : 1)}Hz` },
-    { name: 'qubitMeasure', label: 'Measure', min: 0, max: 1, value: 0.25, format: (v) => `${qubitMeasureHz(v).toFixed(qubitMeasureHz(v) < 10 ? 1 : 0)}/s` },
-    { name: 'qubitTilt', label: 'Tilt', min: 0, max: 1, value: 0.8, format: (v) => `${Math.round(v * 90)}°` },
+    { name: 'qubitRate', label: 'Rabi', size: 'xs', min: 0, max: 1, value: 0.5, format: (v) => `${qubitRateHz(v).toFixed(qubitRateHz(v) < 1 ? 2 : 1)}Hz` },
+    { name: 'qubitMeasure', label: 'Measure', size: 'xs', min: 0, max: 1, value: 0.25, format: (v) => `${qubitMeasureHz(v).toFixed(qubitMeasureHz(v) < 10 ? 1 : 0)}/s` },
+    { name: 'qubitTilt', label: 'Tilt', size: 'xs', min: 0, max: 1, value: 0.8, format: (v) => `${Math.round(v * 90)}°` },
   ],
   lorenz: [
-    { name: 'lorenzSpeed', label: 'Speed', min: 0, max: 1, value: 0.35, format: pct },
+    { name: 'lorenzSpeed', label: 'Speed', size: 'xs', min: 0, max: 1, value: 0.35, format: pct },
   ],
   dice: [
-    { name: 'diceSlew', label: 'Slew', min: 0, max: 1, value: 0.15, format: (v) => secs(Math.max(0.001, v * v * 0.5)) },
+    { name: 'diceSlew', label: 'Slew', size: 'xs', min: 0, max: 1, value: 0.15, format: (v) => secs(Math.max(0.001, v * v * 0.5)) },
   ],
   delay: [
-    { name: 'timeMs', label: 'Time', min: 10, max: 2000, value: 350, format: (v) => `${Math.round(v)}ms` },
-    { name: 'div', label: 'Div', min: 0, max: DELAY_DIVISIONS.length - 1, value: 5, step: 1, format: (v) => DELAY_DIVISIONS[v].label },
-    { name: 'feedback', label: 'Feedback', min: 0, max: 1.1, value: 0.4, format: pct },
-    { name: 'tone', label: 'Tone', min: 0, max: 1, value: 0.6, format: (v) => hz(500 * Math.pow(40, v)) },
-    { name: 'wow', label: 'Wow', min: 0, max: 1, value: 0.15, format: pct },
-    { name: 'duck', label: 'Duck', min: 0, max: 1, value: 0.3, format: pct },
-    { name: 'mix', label: 'Mix', min: 0, max: 1, value: 0.2, format: pct },
+    { name: 'timeMs', label: 'Time', size: 'md', min: 10, max: 2000, value: 350, format: (v) => `${Math.round(v)}ms` },
+    { name: 'div', label: 'Time', size: 'md', min: 0, max: DELAY_DIVISIONS.length - 1, value: 5, step: 1, format: (v) => DELAY_DIVISIONS[v].label },
+    { name: 'feedback', label: 'Feedback', size: 'md', min: 0, max: 1.1, value: 0.4, format: pct },
+    { name: 'mix', label: 'Mix', size: 'md', min: 0, max: 1, value: 0.2, format: pct },
+    { name: 'tone', label: 'Tone', size: 'sm', min: 0, max: 1, value: 0.6, format: (v) => hz(500 * Math.pow(40, v)) },
+    { name: 'wow', label: 'Wow', size: 'sm', min: 0, max: 1, value: 0.15, format: pct },
+    { name: 'duck', label: 'Duck', size: 'sm', min: 0, max: 1, value: 0.3, format: pct },
   ],
   reverb: [
-    { name: 'mix', label: 'Mix', min: 0, max: 1, value: 0.3, format: pct },
-    { name: 'size', label: 'Size', min: 0, max: 1, value: 0.6, format: pct },
-    { name: 'decay', label: 'Decay', min: 0, max: 1, value: 0.55, format: (v) => secs(0.3 * Math.pow(400, v)) },
-    { name: 'damp', label: 'Damp', min: 0, max: 1, value: 0.4, format: pct },
-    { name: 'predelay', label: 'Pre', min: 0, max: 0.5, value: 0.02, format: secs },
-    { name: 'mod', label: 'Mod', min: 0, max: 1, value: 0.3, format: pct },
-    { name: 'shimmer', label: 'Shimmer', min: 0, max: 1, value: 0, format: pct },
-    { name: 'quantum', label: 'Quantum', min: 0, max: 1, value: 0.25, format: pct },
-    { name: 'gravity', label: 'Gravity', min: 0, max: 1, value: 0, format: (v) => (v < 0.005 ? 'off' : secs(0.25 + 3.7 * v * v)) },
+    { name: 'size', label: 'Size', size: 'md', min: 0, max: 1, value: 0.6, format: pct },
+    { name: 'decay', label: 'Decay', size: 'md', min: 0, max: 1, value: 0.55, format: (v) => secs(0.3 * Math.pow(400, v)) },
+    { name: 'mix', label: 'Mix', size: 'md', min: 0, max: 1, value: 0.3, format: pct },
+    { name: 'damp', label: 'Damp', size: 'xs', min: 0, max: 1, value: 0.4, format: pct },
+    { name: 'predelay', label: 'Pre', size: 'xs', min: 0, max: 0.5, value: 0.02, format: secs },
+    { name: 'mod', label: 'Mod', size: 'xs', min: 0, max: 1, value: 0.3, format: pct },
+    { name: 'shimmer', label: 'Shimmer', size: 'xs', min: 0, max: 1, value: 0, format: pct },
+    { name: 'quantum', label: 'Quantum', size: 'xs', min: 0, max: 1, value: 0.25, format: pct },
+    { name: 'gravity', label: 'Gravity', size: 'xs', min: 0, max: 1, value: 0, format: (v) => (v < 0.005 ? 'off' : secs(0.25 + 3.7 * v * v)) },
   ],
 };
 const GROUP_TARGET = { reverb: 'reverb', delay: 'delay' };
@@ -108,11 +117,13 @@ const params = {};
 const controls = {}; // key → { set(value) } so the AU can move knobs (automation, presets)
 
 // Params are keyed "target:name" (e.g. "delay:mix") so modules can share names.
+let applyingPreset = false;
 function setParam(key, value) {
   params[key] = value;
   lastLocal[key] = performance.now();
   const [target, name] = key.includes(':') ? key.split(':') : ['synth', key];
   host.post({ type: MESSAGE_TYPE[target], name, value });
+  if (!applyingPreset) presets?.touched();
   specimen.update(params);
 }
 const keyOf = (target, name) => (target && target !== 'synth' ? `${target}:${name}` : name);
@@ -134,6 +145,7 @@ function applyRemote(values) {
 }
 
 const powerBtn = document.getElementById('power');
+if (isPlugin) powerBtn.classList.add('on'); // the AU is always on; the lamp just says so
 async function startWebAudio() {
   await host.boot();
   for (const [name, value] of Object.entries(params)) setParam(name, value);
@@ -164,6 +176,7 @@ host.onMessage((data) => {
     onMeter(data);
     sources.update(data);
     specimen.feed(data);
+    if (data.level !== undefined) vu.feed(data.level);
     if (isPlugin) {
       if (data.scope) scopeData.set(data.scope.slice(0, scopeData.length));
       seq.setPlaying(!!data.seqPlaying, !!data.seqArmed);
@@ -272,6 +285,28 @@ freezeBtn.addEventListener('click', () => {
   const on = !params['reverb:freeze'];
   setParam('reverb:freeze', on);
   showFreeze(on);
+});
+
+// ---- Presets ----------------------------------------------------------------
+// Captured before the AU's state is applied, so these are the true defaults.
+const defaults = Object.fromEntries(Object.entries(params).filter(([k]) => k !== 'seqHostSync'));
+let presets = null;
+presets = createPresets({
+  root: document.getElementById('presets'),
+  storage: host.storage,
+  defaults,
+  snapshot: () => Object.fromEntries(Object.keys(defaults).map((k) => [k, params[k]])),
+  apply(values) {
+    applyingPreset = true;
+    for (const [key, value] of Object.entries(values)) {
+      controls[key]?.set(value);
+      host.gesture(key, true);
+      setParam(key, value);
+      host.gesture(key, false);
+    }
+    applyingPreset = false;
+    showSyncedKnobs();
+  },
 });
 
 if (init?.params) {
@@ -443,6 +478,7 @@ function drawScope() {
       let peak = 0;
       for (let i = 0; i < buf.length; i += 4) peak = Math.max(peak, Math.abs(buf[i]));
       specimen.feed({ level: peak });
+      vu.feed(peak);
     }
 
     // Trigger on a rising zero crossing so the trace holds still.
@@ -554,3 +590,50 @@ function drawHorizon() {
   render();
 }
 drawHorizon();
+
+// ---- Output meter --------------------------------------------------------------
+// Two columns of LEDs: green, then amber, then red at the top.
+
+function createVu(root, segments = 12) {
+  for (let c = 0; c < 2; c++) {
+    const col = document.createElement('div');
+    col.className = 'vu-col';
+    for (let i = segments - 1; i >= 0; i--) {
+      const led = document.createElement('i');
+      led.className = i >= segments - 2 ? 'hot' : i >= segments - 4 ? 'warm' : '';
+      col.appendChild(led);
+    }
+    root.appendChild(col);
+  }
+  const cols = [...root.querySelectorAll('.vu-col')].map((c) => [...c.children].reverse());
+  let level = 0;
+  let target = 0;
+  const render = () => {
+    level = Math.max(target, level * 0.9);
+    target *= 0.8;
+    // dB-ish scale: −36dB … 0dB across the column; the right column is a touch lazier.
+    const lit = (l) => Math.round(segments * Math.max(0, 1 + (20 * Math.log10(Math.max(l, 1e-4))) / 36));
+    cols.forEach((leds, c) => {
+      const n = lit(c ? level * 0.92 : level);
+      leds.forEach((led, i) => led.classList.toggle('on', i < n));
+    });
+    requestAnimationFrame(render);
+  };
+  render();
+  return { feed: (l) => (target = Math.max(target, l)) };
+}
+const vu = createVu(document.getElementById('vu'));
+
+// ---- Fit the faceplate to the window ------------------------------------------------
+// The panel is laid out at a fixed size, like hardware, and scaled to fit.
+
+const rack = document.querySelector('.rack');
+const plate = document.querySelector('.faceplate');
+function fit() {
+  rack.style.zoom = '1';
+  const w = plate.offsetWidth + 24;
+  const h = plate.offsetHeight + 24;
+  rack.style.zoom = String(Math.max(0.4, Math.min(innerWidth / w, innerHeight / h)));
+}
+addEventListener('resize', fit);
+fit();

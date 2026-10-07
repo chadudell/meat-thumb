@@ -307,6 +307,7 @@ export function createSequencer({ root: host, send, ensureAudio, storage, hostTe
     for (const def of defs) {
       if (def.name === 'bpm' && hostTempo) continue;
       const knob = createKnob({
+        size: 'xs',
         ...def,
         value: state[def.name],
         onChange: (v) => {

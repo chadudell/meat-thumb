@@ -8,180 +8,236 @@
   <link rel="stylesheet" href="src/style.css">
 </head>
 <body>
-  <main class="shop">
+  <div class="rack">
+  <main class="faceplate">
+    <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
+
+    <!-- ---- Header: logo, preset bar, stamps -------------------------------- -->
     <header class="masthead">
-      <div class="dateline">
-        <span>Vol. 1 · Nº 07</span>
-        <span class="dateline-mid">Synthesis &amp; Provisions · Cut to order</span>
-        <span>Fat oscillator · v0.2</span>
-      </div>
-      <div class="mast">
-        <h1 class="title"><img src="assets/meat-thumb-wordmark.webp" alt="Meat Thumb" draggable="false"></h1>
-        <div class="scale">
-          <span class="scale-label">Live weight</span>
-          <canvas id="scope" width="640" height="120" aria-label="Oscilloscope"></canvas>
+      <div class="logo">
+        <div class="logo-type">
+          <span class="logo-meat">MEAT</span><span class="logo-thumb"><span>Thumb</span></span>
         </div>
-        <button id="power" class="power" aria-pressed="false">POWER</button>
+        <div class="logo-mascot" aria-hidden="true">
+          <img src="assets/thumbs/01-clean.webp" alt="" draggable="false">
+          <svg class="toque" viewBox="0 0 60 52"><path d="M14 40 C3 38 1 22 13 19 C13 7 27 2 33 11 C39 3 55 7 52 20 C61 23 58 38 47 40 Z" /><path class="band" d="M14 40 L47 40 L46 51 L15 51 Z"/><path class="pleat" d="M24 41 L24 50 M31 41 L31 50 M38 41 L38 50"/></svg>
+        </div>
+        <div class="logo-sub">Synthesis &amp; Provisions</div>
       </div>
-      <div class="rule"></div>
+      <div class="script fresh">Fresh<br>Signal<br>Daily!</div>
+
+      <div class="preset-bar" id="presets">
+        <span class="preset-label">PRESET</span>
+        <div class="preset-field">
+          <button class="preset-step" data-dir="-1" aria-label="Previous preset">◀</button>
+          <span class="preset-name" tabindex="0">01 Prime Rib</span>
+          <input class="preset-input" type="text" maxlength="28" aria-label="Preset name" hidden>
+          <button class="preset-step" data-dir="1" aria-label="Next preset">▶</button>
+        </div>
+        <button class="preset-act" data-act="save">SAVE</button>
+        <button class="preset-act" data-act="saveas">SAVE AS</button>
+        <div class="preset-more">
+          <button class="preset-act" data-act="more" aria-label="More preset actions">•••</button>
+          <div class="preset-menu" hidden>
+            <button data-act="init">Init patch</button>
+            <button data-act="delete">Delete preset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stamps" aria-hidden="true">
+        <div class="stamp-cut">Cut to order<br>Full weight tone</div>
+        <div class="stamp-box">MEAT<br>THUMB</div>
+        <div class="maker">Audio unit<br>synthesizer<br>Est. 2026</div>
+      </div>
     </header>
 
-    <div class="counter">
-    <aside id="specimen" class="specimen" aria-label="The Specimen"></aside>
-    <div class="cuts">
-
-    <section class="panel" id="osc">
-      <h2>Oscillator</h2>
-      <div class="row">
-        <div class="select-group" data-param="wave" role="radiogroup" aria-label="Waveform">
-          <button data-value="0" class="on">SAW</button>
-          <button data-value="1">PULSE</button>
-          <button data-value="2">TRI</button>
+    <div class="deck">
+      <div class="main">
+      <!-- ---- Row 1 -------------------------------------------------------------- -->
+      <div class="row r1">
+      <section class="panel" id="osc">
+        <h2>Prime Cut <small>Oscillator</small></h2>
+        <div class="panel-body">
+          <div class="select-group icons" data-param="wave" role="radiogroup" aria-label="Waveform">
+            <button data-value="0" class="on" title="Saw"><svg viewBox="0 0 32 16"><path d="M3 13 L14 3 L14 13 L25 3 L25 13 L29 9"/></svg></button>
+            <button data-value="1" title="Pulse"><svg viewBox="0 0 32 16"><path d="M3 13 L3 3 L12 3 L12 13 L21 13 L21 3 L29 3"/></svg></button>
+            <button data-value="2" title="Triangle"><svg viewBox="0 0 32 16"><path d="M3 13 L9 3 L16 13 L23 3 L29 13"/></svg></button>
+          </div>
+          <div class="knobs" data-group="osc"></div>
         </div>
-        <div class="knobs" data-group="osc"></div>
+      </section>
+
+      <section class="panel" id="unison">
+        <h2>Unison</h2>
+        <div class="panel-body">
+          <div class="knobs" data-group="unison"></div>
+          <label class="toggle"><input type="checkbox" data-param="randomPhase" checked><span>Rnd phase</span></label>
+        </div>
+      </section>
+
+      <section class="panel" id="sub">
+        <h2>Sub</h2>
+        <div class="panel-body">
+          <div class="knobs" data-group="sub"></div>
+          <div class="sub-switches">
+            <div class="select-group leds" data-param="subType" role="radiogroup" aria-label="Sub waveform">
+              <button data-value="0">Off</button>
+              <button data-value="1" class="on">Sine</button>
+              <button data-value="2">Sqr</button>
+            </div>
+            <div class="select-group leds" data-param="subOctave" role="radiogroup" aria-label="Sub octave">
+              <button data-value="-1" class="on">−1</button>
+              <button data-value="-2">−2</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="tone">
+        <h2>Trim &amp; Tone <small>Filter / Wavefolder</small></h2>
+        <div class="panel-body">
+          <fieldset class="type-box">
+            <legend>Type</legend>
+            <div class="select-group leds" data-param="filterMode" role="radiogroup" aria-label="Filter mode">
+              <button data-value="0" class="on">LP24</button>
+              <button data-value="1">LP12</button>
+              <button data-value="2">BP</button>
+              <button data-value="3">HP</button>
+            </div>
+          </fieldset>
+          <div class="knobs" data-group="filter"></div>
+          <div class="screen-wrap">
+            <div class="screen"><canvas id="scope" aria-label="Oscilloscope"></canvas></div>
+            <div class="screen-tag">Live weight</div>
+          </div>
+          <div class="knobs" data-group="fold"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="amp">
+        <h2>Amp <small>&amp; Filter Env</small></h2>
+        <div class="panel-body">
+          <div class="env-row"><span class="env-tag">Amp</span><div class="knobs" data-group="amp"></div></div>
+          <div class="env-row"><span class="env-tag">Filt</span><div class="knobs" data-group="fenv"></div></div>
+        </div>
+      </section>
+
+
       </div>
-    </section>
-
-    <section class="panel" id="unison">
-      <h2>Unison</h2>
-      <div class="knobs" data-group="unison"></div>
-      <label class="toggle"><input type="checkbox" data-param="randomPhase" checked> random phase</label>
-    </section>
-
-    <section class="panel" id="sub">
-      <h2>Sub</h2>
-      <div class="row">
-        <div class="select-group" data-param="subType" role="radiogroup" aria-label="Sub waveform">
-          <button data-value="0">OFF</button>
-          <button data-value="1" class="on">SINE</button>
-          <button data-value="2">SQR</button>
-        </div>
-        <div class="select-group" data-param="subOctave" role="radiogroup" aria-label="Sub octave">
-          <button data-value="-1" class="on">-1</button>
-          <button data-value="-2">-2</button>
-        </div>
-        <div class="knobs" data-group="sub"></div>
-      </div>
-    </section>
-
-    <section class="panel" id="amp">
-      <h2>Amp</h2>
-      <div class="knobs" data-group="amp"></div>
-    </section>
-
-    <section class="panel" id="filter">
-      <h2>Filter</h2>
-      <div class="row">
-        <div class="select-group" data-param="filterMode" role="radiogroup" aria-label="Filter mode">
-          <button data-value="0" class="on">LP24</button>
-          <button data-value="1">LP12</button>
-          <button data-value="2">BP</button>
-          <button data-value="3">HP</button>
-        </div>
-        <div class="knobs" data-group="filter"></div>
-      </div>
-    </section>
-
-    <section class="panel" id="lfo">
-      <h2>LFO <span class="sub-h">→ cutoff</span><span class="lfo-meter" aria-hidden="true"><span></span></span></h2>
-      <div class="row">
-        <div class="select-group" data-param="lfoShape" role="radiogroup" aria-label="LFO shape">
-          <button data-value="0" class="on">SINE</button>
-          <button data-value="1">TRI</button>
-          <button data-value="2">SAW</button>
-          <button data-value="3">SQR</button>
-          <button data-value="4">S&amp;H</button>
-        </div>
-        <div class="lfo-side">
-          <div class="knobs" data-group="lfo"></div>
-          <label class="toggle"><input type="checkbox" data-param="lfoSync"> sync to tempo</label>
-          <label class="toggle"><input type="checkbox" data-param="lfoRetrig"> retrigger on note</label>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="modsrc">
-      <h2>Mod Sources</h2>
-      <div class="src-grid">
-        <div class="src">
-          <h3>LFO 1 <span class="lfo-meter src-meter"><span></span></span></h3>
-          <p class="hint">Shape and rate are set in the LFO panel. Its Amount there still goes straight to cutoff.</p>
-        </div>
-        <div class="src">
-          <h3>LFO 2 <span class="lfo-meter src-meter"><span></span></span></h3>
-          <label class="mini-select">Shape
-            <select data-param="lfo2Shape">
+      <div class="row r2">
+      <!-- ---- Row 2 ---------------------------------------------------------------- -->
+      <section class="panel" id="modsrc">
+        <h2>House Specials <small>Mod sources</small></h2>
+        <div class="panel-body src-grid">
+          <div class="src" id="lfo">
+            <h3>LFO 1 <span class="lfo-meter src-meter"><span></span></span></h3>
+            <select data-param="lfoShape" aria-label="LFO 1 shape" title="LFO 1 shape (Amount goes to cutoff)">
+              <option value="0" selected>Sine</option><option value="1">Triangle</option><option value="2">Saw</option><option value="3">Square</option><option value="4">S&amp;H</option>
+            </select>
+            <div class="knobs" data-group="lfo"></div>
+            <label class="toggle mini"><input type="checkbox" data-param="lfoSync"><span>Sync</span></label>
+            <label class="toggle mini"><input type="checkbox" data-param="lfoRetrig"><span>Retrig</span></label>
+          </div>
+          <div class="src">
+            <h3>LFO 2 <span class="lfo-meter src-meter"><span></span></span></h3>
+            <select data-param="lfo2Shape" aria-label="LFO 2 shape">
               <option value="0">Sine</option><option value="1" selected>Triangle</option><option value="2">Saw</option><option value="3">Square</option><option value="4">S&amp;H</option>
             </select>
-          </label>
-          <div class="knobs" data-group="lfo2"></div>
-          <label class="toggle"><input type="checkbox" data-param="lfo2Sync"> sync to tempo</label>
-        </div>
-        <div class="src src-wide">
-          <h3>Qubit <span class="lfo-meter src-meter"><span></span></span></h3>
-          <div class="src-row">
+            <div class="knobs" data-group="lfo2"></div>
+            <label class="toggle mini"><input type="checkbox" data-param="lfo2Sync"><span>Sync</span></label>
+          </div>
+          <div class="src src-qubit" title="A qubit precessing on the Bloch sphere; each measurement collapses it to |0⟩ or |1⟩. Measure fast enough and it freezes — the quantum Zeno effect.">
+            <h3>Qubit <span class="lfo-meter src-meter"><span></span></span></h3>
             <canvas id="bloch" aria-label="Bloch sphere"></canvas>
             <div class="knobs" data-group="qubit"></div>
           </div>
-          <p class="hint">Precesses on the Bloch sphere; each measurement collapses it to |0⟩ or |1⟩ (flashes blue). Measure fast enough and it freezes — the quantum Zeno effect.</p>
-        </div>
-        <div class="src">
-          <h3>Lorenz <span class="lfo-meter src-meter"><span></span></span></h3>
-          <div class="src-row">
+          <div class="src">
+            <h3>Lorenz <span class="lfo-meter src-meter"><span></span></span></h3>
             <canvas id="lorenz" aria-label="Lorenz attractor"></canvas>
             <div class="knobs" data-group="lorenz"></div>
           </div>
+          <div class="src" title="New random value on every played step or note.">
+            <h3>Dice <span class="lfo-meter src-meter"><span></span></span></h3>
+            <svg class="dice" viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="5" width="30" height="30" rx="6"/><circle cx="13" cy="13" r="3"/><circle cx="27" cy="13" r="3"/><circle cx="20" cy="20" r="3"/><circle cx="13" cy="27" r="3"/><circle cx="27" cy="27" r="3"/></svg>
+            <div class="knobs" data-group="dice"></div>
+          </div>
         </div>
-        <div class="src">
-          <h3>Dice <span class="lfo-meter src-meter"><span></span></span></h3>
-          <div class="knobs" data-group="dice"></div>
-          <p class="hint">New random value on every played step or note.</p>
+      </section>
+
+      <section class="panel" id="delay">
+        <h2>Echo Counter <small>Delay</small></h2>
+        <div class="panel-body">
+          <div class="knobs" data-group="delay"></div>
+          <div class="switch-row">
+            <label class="toggle"><input type="checkbox" data-param="sync" data-target="delay" checked><span>Sync</span></label>
+            <div class="select-group leds row" data-param="mode" data-target="delay" role="radiogroup" aria-label="Delay mode">
+              <button data-value="0">Stereo</button>
+              <button data-value="1" class="on">Ping-pong</button>
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="panel" id="matrix">
-      <h2>Mod Matrix</h2>
-      <div class="slots" id="slots"></div>
-    </section>
-
-    <section class="panel" id="delay">
-      <h2>Delay</h2>
-      <div class="row">
-        <div class="select-group" data-param="mode" data-target="delay" role="radiogroup" aria-label="Delay mode">
-          <button data-value="0">STEREO</button>
-          <button data-value="1" class="on">PING-PONG</button>
+      <section class="panel" id="reverb">
+        <h2>Deep Freeze <small>Quantum reverb</small> <span class="flake" aria-hidden="true">✻</span></h2>
+        <div class="panel-body">
+          <div class="screen porthole"><canvas id="horizon" aria-label="Reverb energy display"></canvas></div>
+          <div class="knobs" data-group="reverb"></div>
+          <button id="freeze" class="freeze" aria-pressed="false"><i class="led"></i>Freeze</button>
         </div>
-        <div class="knobs" data-group="delay"></div>
-        <label class="toggle"><input type="checkbox" data-param="sync" data-target="delay" checked> sync to tempo</label>
+      </section>
+
       </div>
-    </section>
+      <div class="row r3">
+      <!-- ---- Row 3 ---------------------------------------------------------------- -->
+      <section class="panel" id="sequencer">
+        <h2>Order Tickets <small>Sequencer</small></h2>
+        <div class="panel-body" id="seq-body"></div>
+      </section>
 
-    <section class="panel" id="reverb">
-      <h2>Quantum Reverb</h2>
-      <div class="reverb-body">
-        <canvas id="horizon" width="180" height="180" aria-label="Reverb energy display"></canvas>
-        <div class="knobs" data-group="reverb"></div>
-        <button id="freeze" class="freeze" aria-pressed="false">FREEZE</button>
+      <section class="panel" id="matrix">
+        <h2>Mod Matrix</h2>
+        <div class="panel-body">
+          <div class="slot-head"><span>#</span><span>Source</span><span></span><span>Destination</span><span>Amount</span></div>
+          <div class="slots" id="slots"></div>
+        </div>
+      </section>
       </div>
-    </section>
-
-    <section class="panel" id="sequencer">
-      <h2>Sequencer</h2>
-      <div id="seq-body"></div>
-    </section>
-
+      </div>
+      <!-- ---- Side column: output + the display case ------------------------- -->
+      <aside class="side">
+        <section class="panel" id="output">
+          <h2>Output</h2>
+          <div class="panel-body">
+            <div class="knobs" data-group="output"></div>
+            <div class="vu" id="vu" aria-hidden="true"></div>
+            <div class="power-wrap">
+              <button id="power" class="power" aria-pressed="false" aria-label="Power"></button>
+              <span class="label">On</span>
+            </div>
+          </div>
+        </section>
+        <section class="panel case" id="case">
+          <h2>The Specimen <small>Display case</small></h2>
+          <div id="specimen" class="specimen" aria-label="The Specimen"></div>
+        </section>
+      </aside>
     </div>
-    </div>
 
+    <!-- ---- Keyboard ------------------------------------------------------------------ -->
     <section class="keys-wrap">
-      <div class="keys-info">
-        <span>Keys: <kbd>A</kbd>–<kbd>K</kbd> play · <kbd>Z</kbd>/<kbd>X</kbd> octave · <kbd>Space</kbd> play/stop · <span id="oct-label">C3</span></span>
-        <span id="midi-status">MIDI: —</span>
-      </div>
       <div id="keyboard" class="keyboard"></div>
+      <div class="keys-info">
+        <div><span class="label">Octave</span> <strong id="oct-label">C3</strong></div>
+        <div class="kbd-hint"><kbd>A</kbd>–<kbd>K</kbd> play · <kbd>Z</kbd>/<kbd>X</kbd> oct · <kbd>Spc</kbd> seq</div>
+        <div id="midi-status">MIDI: —</div>
+      </div>
     </section>
+
+    <div class="grime" aria-hidden="true"></div>
   </main>
+  </div>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
