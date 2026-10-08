@@ -28,7 +28,11 @@ private:
   std::map<juce::String, juce::WebBrowserComponent::Resource> files;
   juce::WebBrowserComponent browser;
   bool pageReady = false;
+  bool pageVisible = true;
   int seenGeneration = 0;
+  int quietTicks = 0;
+  bool lastSeqPlaying = false, lastSeqArmed = false;
+  double lastBpm = 0;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MeatThumbEditor)
 };

@@ -114,7 +114,11 @@ export function createSourceDisplays({ getTilt }) {
     return [w, h];
   }
 
-  function draw() {
+  let last = 0;
+  function draw(now = 0) {
+    requestAnimationFrame(draw);
+    if (now - last < 33) return; // ~30 fps
+    last = now;
     const css = getComputedStyle(document.documentElement);
     const ink = css.getPropertyValue('--ink').trim();
     const line = css.getPropertyValue('--line').trim();
@@ -167,21 +171,25 @@ export function createSourceDisplays({ getTilt }) {
       const [w, h] = fit(lorenz);
       const [x, z] = state.lorenz;
       trail.push([w / 2 + (x / 24) * (w / 2), h - (z / 50) * h]);
-      if (trail.length > 1500) trail.shift(); // long enough to trace both lobes
+      if (trail.length > 750) trail.shift(); // long enough to trace both lobes
       lctx.clearRect(0, 0, w, h);
       lctx.lineWidth = 1;
-      for (let i = 1; i < trail.length; i++) {
-        lctx.globalAlpha = i / trail.length;
-        lctx.strokeStyle = meat;
+      lctx.strokeStyle = meat;
+      // Fade the tail in a dozen batched strokes rather than one per segment.
+      const BANDS = 12;
+      const per = Math.ceil(trail.length / BANDS);
+      for (let b = 0; b < BANDS; b++) {
+        const from = b * per;
+        const to = Math.min(trail.length - 1, from + per);
+        if (to <= from) break;
+        lctx.globalAlpha = (b + 1) / BANDS;
         lctx.beginPath();
-        lctx.moveTo(...trail[i - 1]);
-        lctx.lineTo(...trail[i]);
+        lctx.moveTo(...trail[from]);
+        for (let i = from + 1; i <= to; i++) lctx.lineTo(...trail[i]);
         lctx.stroke();
       }
       lctx.globalAlpha = 1;
     }
-
-    requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 
@@ -193,7 +201,8 @@ export function createSourceDisplays({ getTilt }) {
       state.lorenz = l;
       if (collapses) state.flash = 8;
       mods.forEach((v, i) => {
-        if (meters[i]) meters[i].style.left = `${((v + 1) / 2) * 100}%`;
+        // transform, not left: moves a composited layer instead of repainting the panel
+        if (meters[i]) meters[i].style.transform = `translateX(${(((v + 1) / 2) * 34).toFixed(1)}px)`;
       });
     },
   };

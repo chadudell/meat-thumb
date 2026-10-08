@@ -33,11 +33,11 @@
   --mono: 'Courier New', Courier, monospace;
   --script: 'Brush Script MT', 'Snell Roundhand', cursive;
 
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --blotch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='600'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.009' numOctaves='4' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.24 0 0 0 0 0.12 1.6 0 0 0 -0.78'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
-  --scratch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='500'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0015 0.6' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.98 0 0 0 0 0.94 3.2 0 0 0 -1.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)' transform='rotate(-4 350 250)'/%3E%3C/svg%3E");
-  --chip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='60'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.09 0.25' numOctaves='3' seed='8'/%3E%3CfeColorMatrix values='0 0 0 0 0.98 0 0 0 0 0.93 0 0 0 0 0.85 4 0 0 0 -2.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)'/%3E%3C/svg%3E");
-  --worn-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='120'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.12' numOctaves='3' seed='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -6 0 0 0 4.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
+  --grain: url('../assets/textures/grain.png');
+  --blotch: url('../assets/textures/blotch.png');
+  --scratch: url('../assets/textures/scratch.png');
+  --chip: url('../assets/textures/chip.png');
+  --worn-mask: url('../assets/textures/worn.png');
   color-scheme: light;
 }
 
@@ -68,6 +68,7 @@ button { font: inherit; color: inherit; }
   padding: 14px 18px 16px;
   border-radius: 16px;
   background:
+    var(--scratch),
     radial-gradient(ellipse 115% 95% at 50% 45%, transparent 58%, rgba(84, 52, 22, 0.38) 100%),
     var(--blotch),
     var(--grain),
@@ -80,15 +81,9 @@ button { font: inherit; color: inherit; }
     0 0 0 8px #8c7457,
     0 18px 40px rgba(0, 0, 0, 0.55);
 }
-.grime {
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  pointer-events: none;
-  background: var(--scratch);
-  opacity: 0.22;
-  mix-blend-mode: screen;
-}
+/* Grime is baked into the backgrounds (static, painted once) — an overlay
+   blended over the whole plate made every animation recomposite the window. */
+.grime { display: none; }
 .screw {
   position: absolute;
   width: 16px;
@@ -325,7 +320,7 @@ button { font: inherit; color: inherit; }
   min-width: 0;
   border: 1.5px solid var(--rim);
   border-radius: 6px;
-  background: var(--grain), linear-gradient(#f1e7d5, #e8dbc4);
+  background: var(--scratch), var(--grain), linear-gradient(#f1e7d5, #e8dbc4);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
     inset 0 -3px 8px rgba(110, 76, 40, 0.14),
@@ -726,10 +721,10 @@ body.plugin .power { cursor: default; pointer-events: none; }
   mask-image: radial-gradient(ellipse 70% 65% at 60% 50%, #000 30%, transparent 75%);
 }
 .thumb, .ghosts { position: absolute; inset: 0; transform-origin: 72% 100%; }
+.thumb, .ghost { will-change: transform; }
 .thumb img, .ghost { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; pointer-events: none; }
 .thumb img { transition: opacity 0.18s linear; }
-.ghost { opacity: 0; mix-blend-mode: multiply; transform-origin: 72% 100%; }
-.thumb img[data-id='res'] { filter: drop-shadow(0 0 calc(var(--throb, 0) * 6px) rgba(200, 22, 31, 0.5)); }
+.ghost { opacity: 0; transform-origin: 72% 100%; }
 .defs { position: absolute; }
 .stamp { position: absolute; left: 14px; bottom: 8px; transform: rotate(-9deg); pointer-events: none; }
 .stamp span {
@@ -823,10 +818,11 @@ body.plugin .power { cursor: default; pointer-events: none; }
 .lfo-meter span {
   position: absolute;
   top: -3px;
-  left: 50%;
+  left: -5px;
   width: 10px;
   height: 10px;
-  margin-left: -5px;
+  transform: translateX(17px);
+  will-change: transform;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #ffb3a6, #e3262c 45%, #8e1418);
   box-shadow: 0 0 5px rgba(227, 38, 44, 0.7);

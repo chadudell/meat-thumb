@@ -6,8 +6,10 @@
 //
 // Both speak the same messages ('param', 'noteOn', 'seq', 'modSlots', …) and
 // send back 'meter' and 'step'. The plugin adds a few of its own:
-//   UI → plugin: 'ready', 'gesture' {key, on}, 'uiState' {key, value}
-//   plugin → UI: 'init' {params, ui}, 'params' {values}
+//   UI → plugin: 'ready', 'gesture' {key, on}, 'uiState' {key, value},
+//                'visibility' {visible}
+//   plugin → UI: 'init' {params, ui}, 'params' {values}, and 'batch' {msgs}
+//                wrapping one tick's worth of the others
 // In the plugin the AU owns all state (so it saves with your Logic project),
 // and storage goes there instead of localStorage.
 
@@ -30,7 +32,9 @@ function pluginHost(backend) {
       resolveInit(msg);
       return;
     }
-    for (const fn of listeners) fn(msg);
+    // The AU sends each tick's messages as one batch (one script call).
+    const msgs = msg.type === 'batch' ? msg.msgs : [msg];
+    for (const m of msgs) for (const fn of listeners) fn(m);
   });
 
   const post = (msg) => backend.emitEvent(EVENT, msg);
@@ -42,6 +46,10 @@ function pluginHost(backend) {
     // Resolves with { params: {key: value} } once the AU has sent its state.
     async start() {
       post({ type: 'ready' });
+      // While the window is hidden the AU stops pushing meters at all.
+      const visibility = () => post({ type: 'visibility', visible: !document.hidden });
+      document.addEventListener('visibilitychange', visibility);
+      visibility();
       return init;
     },
     gesture: (key, on) => post({ type: 'gesture', key, on }),

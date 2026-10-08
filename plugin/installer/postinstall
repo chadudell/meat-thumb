@@ -1,0 +1,4 @@
+#!/bin/bash
+# Make macOS re-scan Audio Units so Logic / GarageBand see Meat Thumb straight away.
+killall -9 AudioComponentRegistrar 2>/dev/null || true
+exit 0

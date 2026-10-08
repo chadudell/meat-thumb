@@ -415,7 +415,8 @@ export function createSequencer({ root: host, send, ensureAudio, storage, hostTe
 
   const bpmEl = host.querySelector('.host-bpm');
   function setHostBpm(bpm) {
-    if (bpmEl) bpmEl.textContent = `${Math.round(bpm * 10) / 10}`;
+    const text = `${Math.round(bpm * 10) / 10}`;
+    if (bpmEl && bpmEl.textContent !== text) bpmEl.textContent = text;
   }
 
   // --- Engine events ------------------------------------------------------------

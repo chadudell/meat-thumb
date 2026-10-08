@@ -5,7 +5,7 @@
 #
 # JUCE: pass -DJUCE_DIR=/path/to/JUCE, or it's fetched (8.0.9) at configure time.
 cmake_minimum_required(VERSION 3.22)
-project(MeatThumb VERSION 0.2.0 LANGUAGES C CXX)
+project(MeatThumb VERSION 0.3.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -61,7 +61,7 @@ MeatThumbEditor::MeatThumbEditor(MeatThumbProcessor& p)
   setResizeLimits(960, 600, 2560, 1600);
   if (auto* c = getConstrainer()) c->setFixedAspectRatio(1.6);
   setSize(1440, 900);
-  startTimerHz(30);
+  startTimerHz(15);
 }
 
 MeatThumbEditor::~MeatThumbEditor() { stopTimer(); }
@@ -91,6 +91,8 @@ void MeatThumbEditor::handle(const juce::var& msg) {
   } else if (type == "param" || type == "delayParam" || type == "reverbParam") {
     const juce::String prefix = type == "delayParam" ? "delay:" : type == "reverbParam" ? "reverb:" : "";
     proc.setParamFromUi(prefix + msg["name"].toString(), (double)msg["value"]);
+  } else if (type == "visibility") {
+    pageVisible = (bool)msg["visible"];
   } else if (type == "gesture") {
     proc.gestureFromUi(msg["key"].toString(), (bool)msg["on"]);
   } else if (type == "uiState") {
@@ -119,39 +121,25 @@ void MeatThumbEditor::timerCallback() {
     return;
   }
   if (!pageReady) return;
+  if (!pageVisible) {
+    // Nobody's looking: send nothing (param changes keep until it's visible).
+    std::array<std::pair<int, bool>, 64> drop;
+    proc.popSteps(drop);
+    return;
+  }
+
+  // Everything for this tick goes to the page in ONE script call. Each call
+  // makes WebKit bump its helper processes to foreground priority and back;
+  // in Logic (out-of-process AU hosting) dozens of those a second disturbed
+  // the audio thread enough to cause overloads. So: one batch per tick, 15 Hz
+  // while there's sound, and only a slow heartbeat when the synth is silent.
+  juce::Array<juce::var> batch;
 
   if (auto changed = proc.changedParamValuesForUi(); changed.isObject()) {
     auto* m = new juce::DynamicObject();
     m->setProperty("type", "params");
     m->setProperty("values", changed);
-    emit(juce::var(m));
-  }
-
-  MeatThumbProcessor::Meter meter;
-  if (proc.takeMeter(meter)) {
-    const auto& d = meter.data;
-    auto* m = new juce::DynamicObject();
-    m->setProperty("type", "meter");
-    m->setProperty("rms", d.rms);
-    m->setProperty("jumps", d.jumps);
-    m->setProperty("lfo", d.lfo);
-    m->setProperty("mods", arrayOf(d.mods, 5));
-    m->setProperty("bloch", arrayOf(d.bloch, 3));
-    m->setProperty("collapses", d.collapses);
-    m->setProperty("lorenz", arrayOf(d.lorenz, 2));
-    m->setProperty("level", meter.level);
-    m->setProperty("bpm", meter.bpm);
-    m->setProperty("seqPlaying", meter.seqPlaying);
-    m->setProperty("seqArmed", meter.seqArmed);
-
-    constexpr int kScope = 1024;
-    float buf[kScope];
-    proc.readScope(buf, kScope);
-    juce::Array<juce::var> scope;
-    scope.ensureStorageAllocated(kScope);
-    for (float v : buf) scope.add(std::round(v * 1000.0f) / 1000.0);
-    m->setProperty("scope", scope);
-    emit(juce::var(m));
+    batch.add(juce::var(m));
   }
 
   std::array<std::pair<int, bool>, 64> steps;
@@ -161,8 +149,52 @@ void MeatThumbEditor::timerCallback() {
     m->setProperty("type", "step");
     m->setProperty("step", steps[(size_t)i].first);
     m->setProperty("played", steps[(size_t)i].second);
-    emit(juce::var(m));
+    batch.add(juce::var(m));
   }
+
+  MeatThumbProcessor::Meter meter;
+  if (proc.takeMeter(meter)) {
+    const auto& d = meter.data;
+    const bool sounding = meter.level > 1.0e-4 || d.rms > 1.0e-5;
+    const bool transportChanged = meter.seqPlaying != lastSeqPlaying || meter.seqArmed != lastSeqArmed
+                                  || std::abs(meter.bpm - lastBpm) > 1.0e-3;
+    // Silent: a 2 Hz heartbeat keeps the mod-source displays alive.
+    if (sounding || transportChanged || batch.size() > 0 || ++quietTicks >= 8) {
+      quietTicks = 0;
+      lastSeqPlaying = meter.seqPlaying;
+      lastSeqArmed = meter.seqArmed;
+      lastBpm = meter.bpm;
+      auto* m = new juce::DynamicObject();
+      m->setProperty("type", "meter");
+      m->setProperty("rms", d.rms);
+      m->setProperty("jumps", d.jumps);
+      m->setProperty("lfo", d.lfo);
+      m->setProperty("mods", arrayOf(d.mods, 5));
+      m->setProperty("bloch", arrayOf(d.bloch, 3));
+      m->setProperty("collapses", d.collapses);
+      m->setProperty("lorenz", arrayOf(d.lorenz, 2));
+      m->setProperty("level", meter.level);
+      m->setProperty("bpm", meter.bpm);
+      m->setProperty("seqPlaying", meter.seqPlaying);
+      m->setProperty("seqArmed", meter.seqArmed);
+      if (sounding) {
+        constexpr int kScope = 512;
+        float buf[kScope];
+        proc.readScope(buf, kScope);
+        juce::Array<juce::var> scope;
+        scope.ensureStorageAllocated(kScope);
+        for (float v : buf) scope.add(std::round(v * 1000.0f) / 1000.0);
+        m->setProperty("scope", scope);
+      }
+      batch.add(juce::var(m));
+    }
+  }
+
+  if (batch.isEmpty()) return;
+  auto* m = new juce::DynamicObject();
+  m->setProperty("type", "batch");
+  m->setProperty("msgs", batch);
+  emit(juce::var(m));
 }
 
 } // namespace mt::plugin

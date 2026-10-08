@@ -178,7 +178,7 @@ host.onMessage((data) => {
     specimen.feed(data);
     if (data.level !== undefined) vu.feed(data.level);
     if (isPlugin) {
-      if (data.scope) scopeData.set(data.scope.slice(0, scopeData.length));
+      scopeData = data.scope ? Float32Array.from(data.scope) : silence;
       seq.setPlaying(!!data.seqPlaying, !!data.seqArmed);
       if (data.bpm) seq.setHostBpm(data.bpm);
     }
@@ -460,10 +460,15 @@ if (isPlugin) {
 const scope = document.getElementById('scope');
 const sctx = scope.getContext('2d');
 const scopeBuf = new Float32Array(2048);
-const scopeData = new Float32Array(1024);
+let scopeData = new Float32Array(512);
+const silence = new Float32Array(512);
 
 function drawScope() {
-  const render = () => {
+  let last = 0;
+  const render = (now = 0) => {
+    requestAnimationFrame(render);
+    if (now - last < 33) return; // ~30 fps
+    last = now;
     const dpr = window.devicePixelRatio || 1;
     const w = scope.clientWidth;
     const h = scope.clientHeight;
@@ -508,7 +513,6 @@ function drawScope() {
       x ? sctx.lineTo(x, y) : sctx.moveTo(x, y);
     }
     sctx.stroke();
-    requestAnimationFrame(render);
   };
   render();
 }
@@ -526,7 +530,7 @@ const particles = [];
 const lfoDot = document.querySelector('.lfo-meter span');
 
 function onMeter({ rms, jumps, lfo }) {
-  lfoDot.style.left = `${((lfo + 1) / 2) * 100}%`;
+  lfoDot.style.transform = `translateX(${(((lfo + 1) / 2) * 34).toFixed(1)}px)`;
   level = Math.max(rms, level * 0.9);
   for (let i = 0; i < jumps && particles.length < 120; i++) {
     particles.push({ a: Math.random() * Math.PI * 2, r: 1, v: 0.004 + Math.random() * 0.01 });
@@ -534,7 +538,11 @@ function onMeter({ rms, jumps, lfo }) {
 }
 
 function drawHorizon() {
-  const render = () => {
+  let last = 0;
+  const render = (now = 0) => {
+    requestAnimationFrame(render);
+    if (now - last < 33) return; // ~30 fps
+    last = now;
     const dpr = window.devicePixelRatio || 1;
     const size = horizon.clientWidth;
     if (horizon.width !== size * dpr) {
@@ -585,7 +593,6 @@ function drawHorizon() {
     hctx.fill();
 
     level *= 0.985;
-    requestAnimationFrame(render);
   };
   render();
 }
@@ -608,7 +615,11 @@ function createVu(root, segments = 12) {
   const cols = [...root.querySelectorAll('.vu-col')].map((c) => [...c.children].reverse());
   let level = 0;
   let target = 0;
-  const render = () => {
+  let last = 0;
+  const render = (now = 0) => {
+    requestAnimationFrame(render);
+    if (now - last < 33) return; // ~30 fps
+    last = now;
     level = Math.max(target, level * 0.9);
     target *= 0.8;
     // dB-ish scale: −36dB … 0dB across the column; the right column is a touch lazier.
@@ -617,7 +628,6 @@ function createVu(root, segments = 12) {
       const n = lit(c ? level * 0.92 : level);
       leds.forEach((led, i) => led.classList.toggle('on', i < n));
     });
-    requestAnimationFrame(render);
   };
   render();
   return { feed: (l) => (target = Math.max(target, l)) };

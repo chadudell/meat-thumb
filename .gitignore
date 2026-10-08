@@ -4,3 +4,5 @@ node_modules/
 plugin/build/
 plugin/tests/out/
 __pycache__/
+plugin/build-release/
+plugin/dist/
