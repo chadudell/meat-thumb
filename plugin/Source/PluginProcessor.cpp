@@ -61,8 +61,6 @@ MeatThumbProcessor::MeatThumbProcessor()
     apvts.addParameterListener(id, this);
   }
   events.reserve(2048);
-  for (size_t i = 0; i < defs.size(); i++)
-    if (juce::String(defs[i].key) == "seqHostSync") hostSyncIndex = (int)i;
   engine.onStep = [this](int step, bool played) {
     const auto w = stepFifo.write(1);
     if (w.blockSize1 > 0) stepBuf[(size_t)w.startIndex1] = {step, played};
@@ -192,7 +190,7 @@ void MeatThumbProcessor::syncTransport(int) {
     }
   }
   engine.setBpm(currentBpm);
-  const bool follow = raw[(size_t)hostSyncIndex]->load(std::memory_order_relaxed) > 0.5f;
+  const bool follow = hostSync.load(std::memory_order_relaxed);
 
   // Start aligned to the DAW's grid: the next 16th note, however far away.
   auto startAligned = [&] {
@@ -239,6 +237,7 @@ juce::var MeatThumbProcessor::paramValuesForUi() const {
   auto* obj = new juce::DynamicObject();
   for (size_t i = 0; i < defs.size(); i++)
     obj->setProperty(defs[i].key, toVar(defs[i], uiValueOf(defs[i], raw[i]->load())));
+  obj->setProperty(kHostSyncKey, getHostSync());
   return juce::var(obj);
 }
 
@@ -385,6 +384,7 @@ void MeatThumbProcessor::getStateInformation(juce::MemoryBlock& dest) {
     ui.setProperty("enginePattern", lastPatternJson, nullptr);
     ui.setProperty("engineSlots", lastSlotsJson, nullptr);
   }
+  state.setProperty(kHostSyncKey, getHostSync(), nullptr);
   state.appendChild(ui, nullptr);
   if (auto xml = state.createXml()) copyXmlToBinary(*xml, dest);
 }
@@ -396,6 +396,19 @@ void MeatThumbProcessor::setStateInformation(const void* data, int size) {
   if (!state.hasType(apvts.state.getType())) return;
   auto ui = state.getChildWithName("UI");
   state.removeChild(ui, nullptr);
+
+  // Follow-transport setting. Projects saved before it stopped being a host
+  // parameter have it as a PARAM node instead; honour that, then drop it.
+  bool follow = true;
+  if (state.hasProperty(kHostSyncKey)) follow = (bool)state[kHostSyncKey];
+  for (int i = state.getNumChildren(); --i >= 0;) {
+    auto child = state.getChild(i);
+    if (child.getProperty("id").toString() == kHostSyncKey) {
+      if (!state.hasProperty(kHostSyncKey)) follow = (double)child["value"] > 0.5;
+      state.removeChild(i, nullptr);
+    }
+  }
+  setHostSync(follow);
   apvts.replaceState(state);
 
   juce::String pattern, slots;

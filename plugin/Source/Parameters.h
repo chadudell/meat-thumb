@@ -106,8 +106,9 @@ inline const std::vector<ParamDef>& paramDefs() {
       {"reverb:quantum", "Quantum", Kind::Float, 0, 1, 0.25, {}, {}, MT_F(reverb_quantum)},
       {"reverb:gravity", "Gravity", Kind::Float, 0, 1, 0, {}, {}, MT_F(reverb_gravity)},
       {"reverb:freeze", "Freeze", Kind::Bool, 0, 1, 0, {}, {}, MT_B(reverb_freeze)},
-      // Sequencer (plugin only): start/stop with the DAW's transport.
-      {"seqHostSync", "Seq Follows Host", Kind::Bool, 0, 1, 1, {}, {}, nullptr},
+      // "Follow host transport" is deliberately NOT here: it's a setting, not a
+      // sound parameter, so it lives in the plugin state (see seqHostSync in
+      // PluginProcessor) where host automation can't flip it back.
   };
   return defs;
 }

@@ -1,4 +1,4 @@
-MEAT THUMB 0.3.0 — TESTER BUILD
+MEAT THUMB {{VERSION}} — TESTER BUILD
 ================================
 
 A synthesizer (Audio Unit instrument) for Logic Pro and GarageBand.
@@ -7,14 +7,14 @@ Needs macOS 12 or later. Runs natively on Apple Silicon and Intel Macs.
 
 INSTALL
 -------
-1. Double-click MeatThumb-0.3.0.pkg.
+1. Double-click MeatThumb-{{VERSION}}.pkg.
 
 2. macOS will probably say it "can't verify" the installer. This is a
    test build that isn't signed with an Apple developer certificate yet.
    To allow it:
      - Click Done (not Move to Trash).
      - Open System Settings > Privacy & Security.
-     - Scroll down; next to "MeatThumb-0.3.0.pkg was blocked", click Open Anyway.
+     - Scroll down; next to "MeatThumb-{{VERSION}}.pkg was blocked", click Open Anyway.
      - Confirm with your password or Touch ID.
 
 3. Follow the installer. It puts Meat Thumb in

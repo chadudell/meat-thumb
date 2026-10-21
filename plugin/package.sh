@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build a tester installer: dist/MeatThumb-<version>.pkg
+# Build a tester installer: dist/MeatThumb-<version>.pkg, and
+# dist/MeatThumb-<version>-testers.zip (installer + README) to send out.
 #
 # Universal (Apple Silicon + Intel), macOS 12+. Installs the AU to
 # /Library/Audio/Plug-Ins/Components and refreshes the AU cache.
@@ -16,6 +17,11 @@ export PATH="$(python3 -m site --user-base 2>/dev/null)/bin:$PATH"
 if ! echo '#include <algorithm>' | clang++ -x c++ -fsyntax-only - 2>/dev/null; then
   export CXXFLAGS="-isystem $(xcrun --show-sdk-path)/usr/include/c++/v1 ${CXXFLAGS:-}"
 fi
+# A moved checkout leaves a stale CMake cache pointing at the old path; start fresh.
+if [[ -f build-release/CMakeCache.txt ]] && ! grep -q "CMAKE_HOME_DIRECTORY:INTERNAL=$PWD\$" build-release/CMakeCache.txt; then
+  rm -rf build-release
+fi
+
 generator=(); command -v ninja >/dev/null && generator=(-G Ninja)
 juce=(); [[ -n "${JUCE_DIR:-}" ]] && juce=(-DJUCE_DIR="$JUCE_DIR")
 [[ -z "${JUCE_DIR:-}" && -d ../../JUCE ]] && juce=(-DJUCE_DIR="$(cd ../../JUCE && pwd)")
@@ -66,3 +72,14 @@ sign=(); [[ -n "${SIGN_PKG:-}" ]] && sign=(--sign "$SIGN_PKG")
 productbuild --distribution "$stage/distribution.xml" --resources installer \
   --package-path "$stage" ${sign[@]+"${sign[@]}"} "$out"
 echo "Built $out"
+
+# Tester bundle: the installer plus the README, zipped in a versioned folder.
+bundle="$stage/Meat Thumb $version"
+mkdir -p "$bundle"
+cp "$out" "$bundle/"
+sed "s/{{VERSION}}/$version/g" installer/README-testers.txt > "$bundle/README - Meat Thumb testers.txt"
+xattr -cr "$bundle"
+zip="dist/MeatThumb-$version-testers.zip"
+rm -f "$zip"
+ditto -c -k --norsrc --noextattr --keepParent "$bundle" "$zip"
+echo "Built $zip"

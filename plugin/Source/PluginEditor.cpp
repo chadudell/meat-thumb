@@ -90,7 +90,13 @@ void MeatThumbEditor::handle(const juce::var& msg) {
     emit(juce::var(init));
   } else if (type == "param" || type == "delayParam" || type == "reverbParam") {
     const juce::String prefix = type == "delayParam" ? "delay:" : type == "reverbParam" ? "reverb:" : "";
-    proc.setParamFromUi(prefix + msg["name"].toString(), (double)msg["value"]);
+    const auto key = prefix + msg["name"].toString();
+    if (key == MeatThumbProcessor::kHostSyncKey) {
+      proc.setHostSync((bool)msg["value"]);
+      // Not a parameter, so tell the host the saved state changed.
+      proc.updateHostDisplay(juce::AudioProcessor::ChangeDetails().withNonParameterStateChanged(true));
+    }
+    else proc.setParamFromUi(key, (double)msg["value"]);
   } else if (type == "visibility") {
     pageVisible = (bool)msg["visible"];
   } else if (type == "gesture") {

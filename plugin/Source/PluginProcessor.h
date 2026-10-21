@@ -57,6 +57,11 @@ public:
   void noteFromUi(int type, int note, double velocity);
   void requestSeq(bool start);
 
+  // Sequencer follows the DAW's transport. A saved setting, not automatable.
+  static constexpr const char* kHostSyncKey = "seqHostSync";
+  void setHostSync(bool on) { hostSync = on; }
+  bool getHostSync() const { return hostSync; }
+
   struct Meter {
     MeterData data{};
     double level = 0;
@@ -105,7 +110,7 @@ private:
   bool seqArmed = false;
   double uiBpm = 120, currentBpm = 120;
   int patternLength = 16;
-  int hostSyncIndex = 0;
+  std::atomic<bool> hostSync{true};
   std::vector<float> monoScratch;
 
   // Audio → UI

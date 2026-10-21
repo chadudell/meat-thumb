@@ -13,6 +13,11 @@ if ! echo '#include <algorithm>' | clang++ -x c++ -fsyntax-only - 2>/dev/null; t
   export CXXFLAGS="-isystem $(xcrun --show-sdk-path)/usr/include/c++/v1 ${CXXFLAGS:-}"
 fi
 
+# A moved checkout leaves a stale CMake cache pointing at the old path; start fresh.
+if [[ -f build/CMakeCache.txt ]] && ! grep -q "CMAKE_HOME_DIRECTORY:INTERNAL=$PWD\$" build/CMakeCache.txt; then
+  rm -rf build
+fi
+
 generator=()
 command -v ninja >/dev/null && generator=(-G Ninja)
 juce=()
